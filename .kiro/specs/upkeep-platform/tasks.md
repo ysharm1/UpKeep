@@ -159,73 +159,73 @@ This implementation plan breaks down the UpKeep platform into discrete, incremen
     - Implement conversation end with resolution status
     - _Requirements: 2.4, 2.6, 2.7_
 
-- [ ] 8. Service provider profile management
-  - [ ] 8.1 Implement profile creation for service providers
+- [x] 8. Service provider profile management
+  - [x] 8.1 Implement profile creation for service providers
     - Create profile endpoint with required fields validation
     - Validate business name, contact info, specialties, service area
     - Set initial verification status to 'pending'
     - _Requirements: 3.1, 9.1, 9.2_
   
-  - [ ] 8.2 Write property tests for profile validation
+  - [x] 8.2 Write property tests for profile validation
     - **Property 12: Service specialty validation**
     - **Property 13: Service area format validation**
     - **Property 43: New providers have pending status**
     - **Validates: Requirements 3.2, 3.3, 9.2**
   
-  - [ ] 8.3 Implement profile update and retrieval
+  - [x] 8.3 Implement profile update and retrieval
     - Create profile update endpoint with validation
     - Create profile retrieval endpoint
     - Include ratings, reviews, and verification status
     - _Requirements: 3.6, 3.7_
   
-  - [ ] 8.4 Write property test for profile updates
+  - [x] 8.4 Write property test for profile updates
     - **Property 16: Profile updates are persisted**
     - **Validates: Requirements 3.6**
   
-  - [ ] 8.5 Implement verification document upload
+  - [x] 8.5 Implement verification document upload
     - Create endpoint for license and insurance document upload
     - Store documents securely
     - Update verification status
     - _Requirements: 9.1, 9.6_
   
-  - [ ] 8.6 Write property tests for verification
+  - [x] 8.6 Write property tests for verification
     - **Property 44: Verified providers display badge**
     - **Property 45: Unverified providers cannot receive jobs**
     - **Property 47: Insurance certificate handling**
     - **Validates: Requirements 9.3, 9.4, 9.6**
 
-- [ ] 9. Checkpoint - Ensure job and profile services work
+- [x] 9. Checkpoint - Ensure job and profile services work
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 10. Matching engine implementation
-  - [ ] 10.1 Set up PostGIS for geographic queries
+  - [x] 10.1 Set up PostGIS for geographic queries
     - Install PostGIS extension in PostgreSQL
     - Add geographic indexes to location data
     - _Requirements: 4.1_
   
-  - [ ] 10.2 Implement location-based matching
+  - [x] 10.2 Implement location-based matching
     - Create matching endpoint that accepts job request
     - Query providers whose service area includes job location
     - Support both radius-based and zip code-based service areas
     - _Requirements: 4.1_
   
-  - [ ] 10.3 Write property test for geographic matching
+  - [x] 10.3 Write property test for geographic matching
     - **Property 17: Geographic matching accuracy**
     - **Validates: Requirements 4.1**
   
-  - [ ] 10.4 Implement specialty filtering and ranking
+  - [x] 10.4 Implement specialty filtering and ranking
     - Filter matched providers by service specialty
     - Rank providers by rating (0.5), distance (0.3), response time (0.2)
     - Return top 5 matches
     - _Requirements: 4.2, 4.3, 4.4, 4.5_
   
-  - [ ] 10.5 Write property tests for matching logic
+  - [x] 10.5 Write property tests for matching logic
     - **Property 18: Specialty filtering correctness**
     - **Property 19: Rating-based ranking order**
     - **Property 20: Match result count correctness**
     - **Validates: Requirements 4.2, 4.3, 4.4, 4.5**
   
-  - [ ] 10.6 Implement provider notification system
+  - [x] 10.6 Implement provider notification system
     - Send notifications to matched providers
     - Track notification delivery
     - _Requirements: 5.1_
@@ -313,7 +313,7 @@ This implementation plan breaks down the UpKeep platform into discrete, incremen
     - Convert to user's local timezone on display
     - _Requirements: 7.6_
 
-- [ ] 13. Checkpoint - Ensure matching and messaging work
+- [x] 13. Checkpoint - Ensure matching and messaging work
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 14. Rating system implementation
@@ -430,7 +430,7 @@ This implementation plan breaks down the UpKeep platform into discrete, incremen
     - **Property 53: Export data completeness**
     - **Validates: Requirements 10.7**
 
-- [ ] 17. Checkpoint - Ensure payment and dashboard work
+- [x] 17. Checkpoint - Ensure payment and dashboard work
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 18. Frontend - Authentication UI
