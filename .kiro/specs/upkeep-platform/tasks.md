@@ -69,14 +69,14 @@ This implementation plan breaks down the UpKeep platform into discrete, incremen
     - Handle token expiration and refresh
     - _Requirements: 1.4_
 
-- [ ] 4. Media service implementation
-  - [ ] 4.1 Set up cloud storage integration (AWS S3 or GCS)
+- [x] 4. Media service implementation
+  - [x] 4.1 Set up cloud storage integration (AWS S3 or GCS)
     - Configure cloud storage client
     - Set up bucket with proper permissions
     - Implement signed URL generation
     - _Requirements: 2.2, 2.3_
   
-  - [ ] 4.2 Implement media upload endpoint
+  - [x] 4.2 Implement media upload endpoint
     - Create upload endpoint with file validation
     - Validate file types (JPEG, PNG, MP4, MOV)
     - Validate file sizes (50MB for job requests, 10MB for messages)
@@ -84,19 +84,19 @@ This implementation plan breaks down the UpKeep platform into discrete, incremen
     - Create MediaFile database records
     - _Requirements: 2.2, 2.3, 7.5_
   
-  - [ ] 4.3 Write property tests for media validation
+  - [x] 4.3 Write property tests for media validation
     - **Property 7: Media file validation**
     - **Property 8: Media association with job requests**
     - **Property 35: Message media validation**
     - **Validates: Requirements 2.2, 2.3, 7.5**
   
-  - [ ] 4.4 Implement thumbnail generation for images
+  - [x] 4.4 Implement thumbnail generation for images
     - Create image processing pipeline
     - Generate thumbnails on upload
     - Store thumbnails alongside originals
     - _Requirements: 2.2_
 
-- [ ] 5. Checkpoint - Ensure authentication and media services work
+- [x] 5. Checkpoint - Ensure authentication and media services work
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 6. Job management service implementation
