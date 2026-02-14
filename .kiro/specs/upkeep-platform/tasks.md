@@ -99,36 +99,36 @@ This implementation plan breaks down the UpKeep platform into discrete, incremen
 - [x] 5. Checkpoint - Ensure authentication and media services work
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Job management service implementation
-  - [ ] 6.1 Implement job request creation
+- [x] 6. Job management service implementation
+  - [x] 6.1 Implement job request creation
     - Create job request endpoint
     - Validate problem description (minimum 10 characters)
     - Associate media files with job request
     - Set initial status to 'submitted'
     - _Requirements: 2.1, 2.3_
   
-  - [ ] 6.2 Write property tests for job creation
+  - [x] 6.2 Write property tests for job creation
     - **Property 6: Description length validation**
     - **Validates: Requirements 2.1**
   
-  - [ ] 6.3 Implement job status management
+  - [x] 6.3 Implement job status management
     - Create status update endpoint
     - Implement state machine validation for status transitions
     - Valid transitions: submitted → ai_diagnosis → (resolved_diy OR pending_match) → matched → accepted → in_progress → completed
     - Allow cancelled from any state
     - _Requirements: 2.6, 2.7, 5.3, 5.7_
   
-  - [ ] 6.4 Write property test for status transitions
+  - [x] 6.4 Write property test for status transitions
     - **Property 10: Job status transitions are valid**
     - **Validates: Requirements 2.6, 2.7, 5.3, 5.7**
   
-  - [ ] 6.5 Implement job retrieval and history
+  - [x] 6.5 Implement job retrieval and history
     - Create endpoint to get single job by ID
     - Create endpoint to get job history with filters (status, date range)
     - Implement pagination for job lists
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
   
-  - [ ] 6.6 Write property tests for job history
+  - [x] 6.6 Write property tests for job history
     - **Property 48: Dashboard displays all user jobs**
     - **Property 49: Status filtering correctness**
     - **Property 50: Date range filtering correctness**
