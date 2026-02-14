@@ -15,7 +15,7 @@ This implementation plan breaks down the UpKeep platform into discrete, incremen
   - Set up CI/CD pipeline basics
   - _Requirements: All (foundational)_
 
-- [-] 2. Database schema and models
+- [x] 2. Database schema and models
   - [x] 2.1 Create Prisma schema for all data models
     - Define User, HomeownerProfile, ServiceProviderProfile models
     - Define JobRequest, Address, Location models
@@ -28,42 +28,42 @@ This implementation plan breaks down the UpKeep platform into discrete, incremen
     - **Property 11: Profile creation requires all fields**
     - **Validates: Requirements 3.1**
   
-  - [-] 2.3 Run Prisma migrations and seed test data
+  - [x] 2.3 Run Prisma migrations and seed test data
     - Create initial migration
     - Create seed script with sample users and profiles
     - _Requirements: All (foundational)_
 
-- [ ] 3. Authentication service implementation
-  - [ ] 3.1 Implement user registration with password hashing
+- [x] 3. Authentication service implementation
+  - [x] 3.1 Implement user registration with password hashing
     - Create registration endpoint with email, password, role
     - Hash passwords using bcrypt with salt rounds of 12
     - Create user record and profile based on role
     - _Requirements: 1.1, 1.5_
   
-  - [ ] 3.2 Write property tests for authentication
+  - [x] 3.2 Write property tests for authentication
     - **Property 1: Account creation completeness**
     - **Property 5: Password reset round trip**
     - **Validates: Requirements 1.1, 1.5, 1.6**
   
-  - [ ] 3.3 Implement login with JWT token generation
+  - [x] 3.3 Implement login with JWT token generation
     - Create login endpoint with credential validation
     - Generate access token (15 min expiry) and refresh token (7 day expiry)
     - Store refresh token in database
     - _Requirements: 1.2_
   
-  - [ ] 3.4 Write property tests for session management
+  - [x] 3.4 Write property tests for session management
     - **Property 2: Valid authentication creates sessions**
     - **Property 3: Invalid credentials are rejected**
     - **Property 4: Expired sessions require re-authentication**
     - **Validates: Requirements 1.2, 1.3, 1.4**
   
-  - [ ] 3.5 Implement password reset flow
+  - [x] 3.5 Implement password reset flow
     - Create password reset request endpoint
     - Generate secure reset token with 1-hour expiry
     - Create password reset confirmation endpoint
     - _Requirements: 1.6_
   
-  - [ ] 3.6 Create authentication middleware for protected routes
+  - [x] 3.6 Create authentication middleware for protected routes
     - Validate JWT tokens on protected endpoints
     - Extract user information from tokens
     - Handle token expiration and refresh
