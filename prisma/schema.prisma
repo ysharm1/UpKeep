@@ -1,14 +1,275 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum UserRole {
+  homeowner
+  service_provider
+  admin
+}
+
+enum ServiceCategory {
+  hvac
+  plumbing
+  electrical
+  general_maintenance
+}
+
+enum JobStatus {
+  submitted
+  ai_diagnosis
+  resolved_diy
+  pending_match
+  matched
+  accepted
+  in_progress
+  completed
+  cancelled
+}
+
+enum PaymentStatus {
+  pending
+  authorized
+  captured
+  failed
+  refunded
+}
+
+enum MediaContext {
+  job_request
+  message
+  profile
+  verification
+}
+
+// User and Authentication
+model User {
+  id                      String                   @id @default(uuid())
+  email                   String                   @unique
+  passwordHash            String
+  role                    UserRole
+  emailVerified           Boolean                  @default(false)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  
+  homeownerProfile        HomeownerProfile?
+  serviceProviderProfile  ServiceProviderProfile?
+  refreshTokens           RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+}
+
+model HomeownerProfile {
+  id            String       @id @default(uuid())
+  userId        String       @unique
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName     String
+  lastName      String
+  phoneNumber   String
+  addressId     String?
+  address       Address?     @relation(fields: [addressId], references: [id])
+  averageRating Float        @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  jobRequests   JobRequest[]
+}
+
+model ServiceProviderProfile {
+  id                String            @id @default(uuid())
+  userId            String            @unique
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName      String
+  phoneNumber       String
+  specialties       ServiceCategory[]
+  licenseNumber     String
+  verified          Boolean           @default(false)
+  insuranceVerified Boolean           @default(false)
+  profilePhotoUrl   String?
+  averageRating     Float             @default(0)
+  reviewCount       Int               @default(0)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  serviceArea       ServiceArea?
+  jobRequests       JobRequest[]
+}
+
+model ServiceArea {
+  id                    String                 @id @default(uuid())
+  serviceProviderId     String                 @unique
+  serviceProvider       ServiceProviderProfile @relation(fields: [serviceProviderId], references: [id], onDelete: Cascade)
+  centerLocationId      String?
+  centerLocation        Address?               @relation(fields: [centerLocationId], references: [id])
+  radiusMiles           Float?
+  zipCodes              String[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+}
+
+model Address {
+  id                    String                   @id @default(uuid())
+  street                String
+  city                  String
+  state                 String
+  zipCode               String
+  latitude              Float
+  longitude             Float
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  
+  homeownerProfiles     HomeownerProfile[]
+  jobRequests           JobRequest[]
+  serviceAreas          ServiceArea[]
+}
+
+// Job Management
+model JobRequest {
+  id                String                  @id @default(uuid())
+  homeownerId       String
+  homeowner         HomeownerProfile        @relation(fields: [homeownerId], references: [id])
+  serviceProviderId String?
+  serviceProvider   ServiceProviderProfile? @relation(fields: [serviceProviderId], references: [id])
+  category          ServiceCategory
+  description       String
+  locationId        String
+  location          Address                 @relation(fields: [locationId], references: [id])
+  status            JobStatus               @default(submitted)
+  priceQuote        Float?
+  scheduledDate     DateTime?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  
+  mediaFiles        MediaFile[]
+  conversation      Conversation?
+  messageThread     MessageThread?
+  ratings           Rating[]
+  payment           Payment?
+  
+  @@index([homeownerId])
+  @@index([serviceProviderId])
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
+}
+
+// AI Chatbot
+model Conversation {
+  id           String        @id @default(uuid())
+  jobRequestId String        @unique
+  jobRequest   JobRequest    @relation(fields: [jobRequestId], references: [id], onDelete: Cascade)
+  resolved     Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  
+  messages     ChatMessage[]
+}
+
+model ChatMessage {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String       // 'user' | 'assistant'
+  content        String       @db.Text
+  timestamp      DateTime     @default(now())
+  
+  @@index([conversationId])
+}
+
+// Messaging
+model MessageThread {
+  id                String       @id @default(uuid())
+  jobRequestId      String       @unique
+  jobRequest        JobRequest   @relation(fields: [jobRequestId], references: [id], onDelete: Cascade)
+  homeownerId       String
+  serviceProviderId String
+  archived          Boolean      @default(false)
+  createdAt         DateTime     @default(now())
+  lastMessageAt     DateTime     @updatedAt
+  
+  messages          Message[]
+  
+  @@index([homeownerId])
+  @@index([serviceProviderId])
+}
+
+model Message {
+  id        String        @id @default(uuid())
+  threadId  String
+  thread    MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderId  String
+  content   String        @db.Text
+  mediaUrl  String?
+  readBy    String[]
+  timestamp DateTime      @default(now())
+  
+  @@index([threadId])
+  @@index([timestamp])
+}
+
+// Ratings
+model Rating {
+  id         String     @id @default(uuid())
+  jobId      String
+  job        JobRequest @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  reviewerId String
+  revieweeId String
+  score      Int        // 1-5
+  review     String?    @db.Text
+  flagged    Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+  
+  @@unique([jobId, reviewerId])
+  @@index([revieweeId])
+}
+
+// Payments
+model Payment {
+  id                     String        @id @default(uuid())
+  jobId                  String        @unique
+  job                    JobRequest    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  stripePaymentIntentId  String        @unique
+  amount                 Float
+  platformFee            Float
+  providerAmount         Float
+  status                 PaymentStatus @default(pending)
+  authorizedAt           DateTime?
+  capturedAt             DateTime?
+  createdAt              DateTime      @default(now())
+  
+  @@index([status])
+}
+
+// Media
+model MediaFile {
+  id           String       @id @default(uuid())
+  userId       String
+  jobRequestId String?
+  jobRequest   JobRequest?  @relation(fields: [jobRequestId], references: [id], onDelete: Cascade)
+  filename     String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String       @unique
+  url          String
+  thumbnailUrl String?
+  context      MediaContext
+  uploadedAt   DateTime     @default(now())
+  
+  @@index([userId])
+  @@index([jobRequestId])
 }

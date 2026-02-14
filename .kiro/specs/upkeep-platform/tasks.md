@@ -15,8 +15,8 @@ This implementation plan breaks down the UpKeep platform into discrete, incremen
   - Set up CI/CD pipeline basics
   - _Requirements: All (foundational)_
 
-- [ ] 2. Database schema and models
-  - [ ] 2.1 Create Prisma schema for all data models
+- [-] 2. Database schema and models
+  - [x] 2.1 Create Prisma schema for all data models
     - Define User, HomeownerProfile, ServiceProviderProfile models
     - Define JobRequest, Address, Location models
     - Define Conversation, ChatMessage, MessageThread, Message models
@@ -24,11 +24,11 @@ This implementation plan breaks down the UpKeep platform into discrete, incremen
     - Set up relationships and indexes
     - _Requirements: 1.1, 2.1, 3.1, 5.1, 6.1, 7.1, 8.1, 9.1, 10.1_
   
-  - [ ] 2.2 Write property test for data model validation
+  - [x] 2.2 Write property test for data model validation
     - **Property 11: Profile creation requires all fields**
     - **Validates: Requirements 3.1**
   
-  - [ ] 2.3 Run Prisma migrations and seed test data
+  - [-] 2.3 Run Prisma migrations and seed test data
     - Create initial migration
     - Create seed script with sample users and profiles
     - _Requirements: All (foundational)_
