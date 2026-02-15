@@ -208,18 +208,18 @@ export default function ProviderDashboardPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <Link
+                      href={`/provider/jobs/${job.id}/diagnostic-report`}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                    >
+                      Submit Assessment
+                    </Link>
                     <button
                       onClick={() => handleCaptureDiagnostic(job.id)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
                     >
                       Capture Diagnostic Payment
                     </button>
-                    <Link
-                      href={`/provider/jobs/${job.id}/repair-quote`}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
-                    >
-                      Submit Repair Quote
-                    </Link>
                   </div>
                 </div>
               ))

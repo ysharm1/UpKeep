@@ -53,6 +53,20 @@ enum QuoteStatus {
   DECLINED
 }
 
+enum DiagnosticRecommendation {
+  REPAIR
+  REPLACE
+  MONITOR
+  NO_ACTION_NEEDED
+}
+
+enum DiagnosticSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
 enum MediaContext {
   job_request
   message
@@ -183,12 +197,30 @@ model JobRequest {
   ratings                   Rating[]
   payment                   Payment?
   repairQuote               RepairQuote?
+  diagnosticReport          DiagnosticReport?
   
   @@index([homeownerId])
   @@index([serviceProviderId])
   @@index([status])
   @@index([category])
   @@index([createdAt])
+}
+
+model DiagnosticReport {
+  id                String                     @id @default(uuid())
+  jobRequestId      String                     @unique
+  jobRequest        JobRequest                 @relation(fields: [jobRequestId], references: [id], onDelete: Cascade)
+  providerId        String
+  summary           String                     @db.Text
+  recommendation    DiagnosticRecommendation
+  severity          DiagnosticSeverity?
+  estimatedCost     String?
+  photoUrls         String[]
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  
+  @@index([jobRequestId])
+  @@index([providerId])
 }
 
 // AI Chatbot
