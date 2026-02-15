@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { UserRole } from '@prisma/client'
-import { authService } from '@/lib/auth/auth.service'
 
+export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
+    // Lazy load heavy dependencies
+    const { UserRole } = await import('@prisma/client')
+    const { authService } = await import('@/lib/auth/auth.service')
+    
     const body = await request.json()
     const { email, password, role, profileData, address } = body
 
@@ -38,6 +41,8 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error: any) {
+    console.error('[SIGNUP] Error:', error)
+    
     if (error.code === 'P2002') {
       return NextResponse.json(
         { error: 'User with this email already exists' },
@@ -46,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
     
     return NextResponse.json(
-      { error: error.message || 'Registration failed' },
+      { error: error.message || 'Registration failed', stack: error.stack },
       { status: 500 }
     )
   }

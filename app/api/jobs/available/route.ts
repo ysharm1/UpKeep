@@ -11,7 +11,13 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.substring(7)
-    const user = await authService.validateSession(token)
+    
+    let user
+    try {
+      user = await authService.validateSession(token)
+    } catch (error) {
+      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 })
+    }
 
     if (user.role !== 'service_provider') {
       return NextResponse.json({ error: 'Only service providers can access this' }, { status: 403 })
@@ -30,23 +36,34 @@ export async function GET(request: NextRequest) {
     })
 
     if (!providerProfile) {
-      return NextResponse.json({ error: 'Provider profile not found' }, { status: 404 })
+      // Return empty jobs list instead of error if profile not fully set up
+      return NextResponse.json({
+        jobs: [],
+        count: 0,
+        message: 'Complete your provider profile to see available jobs',
+      })
     }
 
     // Find jobs that:
     // 1. Are in "submitted" or "pending_match" status (not yet claimed)
-    // 2. Match provider's specialties
+    // 2. Match provider's specialties (or show all if no specialties set)
     // 3. Are in provider's service area (for now, just show all - will add location filtering later)
-    const availableJobs = await prisma.jobRequest.findMany({
-      where: {
-        status: {
-          in: ['submitted', 'pending_match'],
-        },
-        serviceProviderId: null, // Not yet assigned to anyone
-        category: {
-          in: providerProfile.specialties,
-        },
+    const whereClause: any = {
+      status: {
+        in: ['submitted', 'pending_match'],
       },
+      serviceProviderId: null, // Not yet assigned to anyone
+    }
+
+    // Only filter by specialties if provider has any set
+    if (providerProfile.specialties && providerProfile.specialties.length > 0) {
+      whereClause.category = {
+        in: providerProfile.specialties,
+      }
+    }
+
+    const availableJobs = await prisma.jobRequest.findMany({
+      where: whereClause,
       include: {
         location: true,
         homeowner: {

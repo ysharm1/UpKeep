@@ -93,6 +93,12 @@ export default function DashboardPage() {
             </div>
             <div className="flex gap-4 items-center">
               <Link
+                href="/messages"
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+              >
+                Messages
+              </Link>
+              <Link
                 href="/problems/new"
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >

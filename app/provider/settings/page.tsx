@@ -12,6 +12,12 @@ export default function ProviderSettingsPage() {
   const [profileId, setProfileId] = useState('')
   
   const [diagnosticFee, setDiagnosticFee] = useState('89')
+  const [specialties, setSpecialties] = useState<string[]>([])
+  const [businessName, setBusinessName] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [licenseNumber, setLicenseNumber] = useState('')
+
+  const availableSpecialties = ['hvac', 'plumbing', 'electrical', 'general_maintenance']
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
@@ -32,9 +38,22 @@ export default function ProviderSettingsPage() {
         if (response.ok) {
           const data = await response.json()
           if (data.user?.serviceProviderProfile) {
-            setProfileId(data.user.serviceProviderProfile.id)
-            if (data.user.serviceProviderProfile.diagnosticFee) {
-              setDiagnosticFee(data.user.serviceProviderProfile.diagnosticFee.toString())
+            const profile = data.user.serviceProviderProfile
+            setProfileId(profile.id)
+            if (profile.diagnosticFee) {
+              setDiagnosticFee(profile.diagnosticFee.toString())
+            }
+            if (profile.specialties) {
+              setSpecialties(profile.specialties)
+            }
+            if (profile.businessName) {
+              setBusinessName(profile.businessName)
+            }
+            if (profile.phoneNumber) {
+              setPhoneNumber(profile.phoneNumber)
+            }
+            if (profile.licenseNumber) {
+              setLicenseNumber(profile.licenseNumber)
             }
           }
         }
@@ -67,13 +86,19 @@ export default function ProviderSettingsPage() {
     }
 
     try {
-      const response = await fetch(`/api/providers/${profileId}/diagnostic-fee`, {
+      const response = await fetch(`/api/providers/${profileId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ diagnosticFee: fee })
+        body: JSON.stringify({ 
+          diagnosticFee: fee,
+          specialties,
+          businessName,
+          phoneNumber,
+          licenseNumber
+        })
       })
 
       const data = await response.json()
@@ -82,7 +107,7 @@ export default function ProviderSettingsPage() {
         setSaved(true)
         setTimeout(() => setSaved(false), 3000)
       } else {
-        setError(data.error?.message || 'Failed to save diagnostic fee')
+        setError(data.error?.message || 'Failed to save profile')
       }
     } catch (err) {
       setError('Network error. Please try again.')
@@ -90,6 +115,14 @@ export default function ProviderSettingsPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const toggleSpecialty = (specialty: string) => {
+    setSpecialties(prev => 
+      prev.includes(specialty)
+        ? prev.filter(s => s !== specialty)
+        : [...prev, specialty]
+    )
   }
 
   return (
@@ -114,22 +147,105 @@ export default function ProviderSettingsPage() {
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Diagnostic Visit Fee</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Provider Profile Settings</h1>
           <p className="text-gray-600 mb-6">
-            Set your fee for diagnostic visits. This is what homeowners pay to book you for an inspection.
+            Manage your business information, specialties, and pricing.
           </p>
 
-          <div className="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
-            <p className="text-sm text-blue-800">
-              💡 <strong>How it works:</strong> Homeowners book and pay your diagnostic fee upfront. After you inspect the problem, you submit a repair quote through the app.
-            </p>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Business Information */}
+            <div className="border-b pb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Business Information</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Business Name
+                  </label>
+                  <input
+                    type="text"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="ABC Plumbing Services"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    License Number (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={licenseNumber}
+                    onChange={(e) => setLicenseNumber(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="LIC-12345"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Specialties */}
+            <div className="border-b pb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Specialties</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Select all services you provide. You'll see jobs matching these categories.
+              </p>
+              
+              <div className="grid grid-cols-2 gap-3">
+                {availableSpecialties.map((specialty) => (
+                  <button
+                    key={specialty}
+                    type="button"
+                    onClick={() => toggleSpecialty(specialty)}
+                    className={`px-4 py-3 rounded-lg border-2 text-left transition-colors ${
+                      specialties.includes(specialty)
+                        ? 'border-blue-600 bg-blue-50 text-blue-900'
+                        : 'border-gray-200 hover:border-blue-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                        specialties.includes(specialty)
+                          ? 'border-blue-600 bg-blue-600'
+                          : 'border-gray-300'
+                      }`}>
+                        {specialties.includes(specialty) && (
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="font-medium capitalize">
+                        {specialty.replace('_', ' ')}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Diagnostic Fee */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Diagnostic Visit Fee
-              </label>
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Diagnostic Visit Fee</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Set your fee for diagnostic visits. This is what homeowners pay to book you for an inspection.
+              </p>
+
               <div className="relative">
                 <span className="absolute left-3 top-3 text-gray-500 text-lg">$</span>
                 <input
@@ -148,16 +264,6 @@ export default function ProviderSettingsPage() {
               </p>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="font-medium text-gray-900 mb-2">What&apos;s included:</h3>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>✓ Travel to customer location</li>
-                <li>✓ Problem inspection and diagnosis</li>
-                <li>✓ Detailed repair quote provided on-site</li>
-                <li>✓ Payment guaranteed if you show up</li>
-              </ul>
-            </div>
-
             <div className="border-t pt-6">
               <div className="flex gap-4">
                 <button
@@ -165,7 +271,7 @@ export default function ProviderSettingsPage() {
                   disabled={loading}
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50"
                 >
-                  {loading ? 'Saving...' : 'Save Diagnostic Fee'}
+                  {loading ? 'Saving...' : 'Save Profile Settings'}
                 </button>
                 <Link
                   href="/provider/dashboard"
@@ -175,7 +281,7 @@ export default function ProviderSettingsPage() {
                 </Link>
               </div>
               {saved && (
-                <p className="text-green-600 text-sm mt-2">✓ Diagnostic fee saved successfully!</p>
+                <p className="text-green-600 text-sm mt-2">✓ Profile settings saved successfully!</p>
               )}
               {error && (
                 <p className="text-red-600 text-sm mt-2">✗ {error}</p>

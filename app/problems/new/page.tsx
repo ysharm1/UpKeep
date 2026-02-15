@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import PhotoUpload from '@/app/components/PhotoUpload'
+import StripePaymentForm from '@/app/components/StripePaymentForm'
 
 export default function NewProblemPage() {
   const router = useRouter()
@@ -270,13 +271,245 @@ export default function NewProblemPage() {
   }
 
   if (step === 'hire') {
+    const [selectedProvider, setSelectedProvider] = useState<any>(null)
+    const [selectedDate, setSelectedDate] = useState('')
+    const [selectedTime, setSelectedTime] = useState('')
+    const [bookingStep, setBookingStep] = useState<'browse' | 'schedule' | 'payment'>('browse')
+    const [providers, setProviders] = useState<any[]>([])
+    const [loadingProviders, setLoadingProviders] = useState(true)
+
+    // Fetch real providers on mount
+    useEffect(() => {
+      const fetchProviders = async () => {
+        try {
+          const token = localStorage.getItem('accessToken')
+          const response = await fetch('/api/providers/nearby', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              category: problem.category,
+              location: problem.location,
+            }),
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            setProviders(data.providers || [])
+          }
+        } catch (error) {
+          console.error('Failed to fetch providers:', error)
+        } finally {
+          setLoadingProviders(false)
+        }
+      }
+
+      fetchProviders()
+    }, [])
+
+    const handleScheduleConsult = (provider: any) => {
+      setSelectedProvider(provider)
+      setBookingStep('schedule')
+    }
+
+    const handleConfirmSchedule = () => {
+      if (!selectedDate || !selectedTime) {
+        alert('Please select both date and time')
+        return
+      }
+      setBookingStep('payment')
+    }
+
+    if (bookingStep === 'payment') {
+      const handlePaymentSuccess = async (paymentMethodId: string) => {
+        try {
+          const token = localStorage.getItem('accessToken')
+          
+          // Create booking with payment
+          const response = await fetch('/api/bookings', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              providerId: selectedProvider.id,
+              scheduledDate: selectedDate,
+              scheduledTime: selectedTime,
+              consultationFee: selectedProvider.consultFee,
+              paymentMethodId: paymentMethodId,
+              problemDescription: problem.description,
+              category: problem.category,
+            }),
+          })
+
+          if (!response.ok) {
+            const error = await response.json()
+            throw new Error(error.error || 'Booking failed')
+          }
+
+          alert('Consultation booked successfully! The provider will contact you soon.')
+          router.push('/dashboard')
+        } catch (error: any) {
+          alert(`Booking failed: ${error.message}`)
+        }
+      }
+
+      const handlePaymentError = (error: string) => {
+        alert(`Payment failed: ${error}`)
+      }
+
+      return (
+        <div className="min-h-screen bg-gray-50 p-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-lg shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Confirm Consultation</h2>
+              
+              <div className="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
+                <h3 className="font-semibold text-blue-900 mb-2">Consultation Details</h3>
+                <p className="text-sm text-blue-800"><strong>Provider:</strong> {selectedProvider.name}</p>
+                <p className="text-sm text-blue-800"><strong>Date:</strong> {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p className="text-sm text-blue-800"><strong>Time:</strong> {selectedTime}</p>
+                <p className="text-sm text-blue-800 mt-2"><strong>Consultation Fee:</strong> ${selectedProvider.consultFee}</p>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <h4 className="font-semibold text-gray-900 mb-3">What happens next?</h4>
+                <ol className="space-y-2 text-sm text-gray-700">
+                  <li className="flex gap-2">
+                    <span className="font-semibold text-blue-600">1.</span>
+                    <span>Pay the ${selectedProvider.consultFee} consultation fee to secure your appointment</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-semibold text-blue-600">2.</span>
+                    <span>The provider will visit your property at the scheduled time</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-semibold text-blue-600">3.</span>
+                    <span>They'll assess the problem and provide a detailed quote with photos</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-semibold text-blue-600">4.</span>
+                    <span>Review and approve the quote to proceed with the repair</span>
+                  </li>
+                </ol>
+              </div>
+
+              <div className="border-t pt-6 mb-6">
+                <StripePaymentForm
+                  amount={selectedProvider.consultFee}
+                  onSuccess={handlePaymentSuccess}
+                  onError={handlePaymentError}
+                  buttonText={`Pay $${selectedProvider.consultFee} & Book Consultation`}
+                />
+              </div>
+                
+              <button
+                onClick={() => setBookingStep('schedule')}
+                className="w-full px-6 py-2 text-gray-600 hover:text-gray-800"
+              >
+                ← Back to Schedule
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    if (bookingStep === 'schedule') {
+      return (
+        <div className="min-h-screen bg-gray-50 p-4">
+          <div className="max-w-3xl mx-auto">
+            <div className="bg-white rounded-lg shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Schedule Consultation</h2>
+              <p className="text-gray-600 mb-6">with {selectedProvider.name}</p>
+
+              <div className="grid md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3">Select Date</h3>
+                  <div className="space-y-2">
+                    {selectedProvider.availability.map((date: string) => (
+                      <button
+                        key={date}
+                        onClick={() => setSelectedDate(date)}
+                        className={`w-full px-4 py-3 rounded-lg border-2 text-left transition-colors ${
+                          selectedDate === date
+                            ? 'border-blue-600 bg-blue-50 text-blue-900'
+                            : 'border-gray-200 hover:border-blue-300'
+                        }`}
+                      >
+                        <div className="font-medium">
+                          {new Date(date).toLocaleDateString('en-US', { weekday: 'long' })}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3">Select Time</h3>
+                  <div className="space-y-2">
+                    {selectedProvider.timeSlots.map((time: string) => (
+                      <button
+                        key={time}
+                        onClick={() => setSelectedTime(time)}
+                        disabled={!selectedDate}
+                        className={`w-full px-4 py-3 rounded-lg border-2 transition-colors ${
+                          selectedTime === time
+                            ? 'border-blue-600 bg-blue-50 text-blue-900'
+                            : 'border-gray-200 hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed'
+                        }`}
+                      >
+                        {time}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">Consultation Fee:</span>
+                  <span className="text-xl font-bold text-gray-900">${selectedProvider.consultFee}</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  This fee covers the provider's visit and assessment. You'll receive a detailed quote before any work begins.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setBookingStep('browse')}
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  ← Back
+                </button>
+                <button
+                  onClick={handleConfirmSchedule}
+                  disabled={!selectedDate || !selectedTime}
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  Continue to Payment →
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className="min-h-screen bg-gray-50 p-4">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-lg shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Finding Local Professionals</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Find Local Professionals</h2>
             <p className="text-gray-600 mb-6">
-              We're matching you with verified {problem.category} professionals in your area.
+              Schedule a consultation with verified {problem.category} professionals in your area.
             </p>
 
             <div className="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
@@ -288,91 +521,78 @@ export default function NewProblemPage() {
               </p>
             </div>
 
-            <div className="space-y-4 mb-6">
-              <h3 className="font-semibold text-lg text-gray-900">Available Professionals:</h3>
-              
-              {/* Mock professional cards */}
-              <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Quick Fix Plumbing</h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex text-yellow-400">
-                        {'★'.repeat(5)}
+            {loadingProviders ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="text-gray-600 mt-4">Finding providers in your area...</p>
+              </div>
+            ) : providers.length === 0 ? (
+              <div className="text-center py-12 bg-gray-50 rounded-lg">
+                <p className="text-gray-600 mb-2">No providers available in your area yet.</p>
+                <p className="text-sm text-gray-500">We're working on expanding our network!</p>
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="mt-4 px-6 py-2 text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  ← Back to Dashboard
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-4 mb-6">
+                  <h3 className="font-semibold text-lg text-gray-900">Available Professionals:</h3>
+                  
+                  {providers.map((provider) => (
+                <div key={provider.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-xl text-gray-900">{provider.name}</h4>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="flex text-yellow-400 text-lg">
+                          {'★'.repeat(Math.floor(provider.rating))}
+                          {provider.rating % 1 !== 0 && '☆'}
+                        </div>
+                        <span className="text-sm text-gray-600">{provider.rating} ({provider.reviews} reviews)</span>
+                        <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded font-medium">Verified</span>
                       </div>
-                      <span className="text-sm text-gray-600">4.8 (42 reviews)</span>
-                      <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">Verified</span>
                     </div>
-                    <p className="text-sm text-gray-600 mt-2">
-                      Specialties: {problem.category}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Distance: 2.3 miles away
-                    </p>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-blue-600">${provider.consultFee}</div>
+                      <div className="text-xs text-gray-500">consultation fee</div>
+                    </div>
                   </div>
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
-                    Contact
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Specialties:</span>
+                      <span className="ml-2 font-medium text-gray-900">{provider.specialties.join(', ')}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Distance:</span>
+                      <span className="ml-2 font-medium text-gray-900">{provider.distance} miles away</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleScheduleConsult(provider)}
+                    className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors"
+                  >
+                    Schedule Consultation →
                   </button>
                 </div>
-              </div>
+              ))}
+                </div>
 
-              <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Cool Air HVAC</h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex text-yellow-400">
-                        {'★'.repeat(5)}
-                      </div>
-                      <span className="text-sm text-gray-600">4.9 (38 reviews)</span>
-                      <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">Verified</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-2">
-                      Specialties: {problem.category}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Distance: 3.7 miles away
-                    </p>
-                  </div>
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
-                    Contact
+                <div className="border-t pt-6">
+                  <button
+                    onClick={() => router.push('/dashboard')}
+                    className="text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    ← Back to Dashboard
                   </button>
                 </div>
-              </div>
-
-              <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Bright Spark Electric</h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex text-yellow-400">
-                        {'★'.repeat(4)}{'☆'}
-                      </div>
-                      <span className="text-sm text-gray-600">4.7 (29 reviews)</span>
-                      <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">Verified</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-2">
-                      Specialties: {problem.category}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Distance: 5.1 miles away
-                    </p>
-                  </div>
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
-                    Contact
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t pt-6">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                ← Back to Dashboard
-              </button>
-            </div>
+              </>
+            )}
           </div>
         </div>
       </div>

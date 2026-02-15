@@ -170,6 +170,18 @@ export default function ProviderDashboardPage() {
             </div>
             <div className="flex gap-4 items-center">
               <Link
+                href="/messages"
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+              >
+                Messages
+              </Link>
+              <Link
+                href="/provider/profile"
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+              >
+                Profile
+              </Link>
+              <Link
                 href="/provider/jobs/find"
                 className="px-4 py-2 text-gray-700 hover:text-gray-900"
               >

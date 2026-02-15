@@ -1,89 +1,57 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-import { verifyToken } from '@/lib/auth/auth.middleware'
-
-const prisma = new PrismaClient()
+import { authService } from '@/lib/auth/auth.service'
+import { prisma } from '@/lib/prisma'
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Authenticate user
     const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: { message: 'Authentication required', code: 'AUTH_REQUIRED' } },
-        { status: 401 }
-      )
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const decoded = verifyToken(token)
-    
-    if (!decoded) {
-      return NextResponse.json(
-        { error: { message: 'Invalid token', code: 'AUTH_REQUIRED' } },
-        { status: 401 }
-      )
-    }
+    const token = authHeader.substring(7)
+    const user = await authService.validateSession(token)
 
-    // Get provider profile
-    const profile = await prisma.serviceProviderProfile.findUnique({
-      where: { id: params.id },
-      include: { user: true }
-    })
-
-    if (!profile) {
+    if (user.role !== 'service_provider') {
       return NextResponse.json(
-        { error: { message: 'Provider not found', code: 'NOT_FOUND' } },
-        { status: 404 }
-      )
-    }
-
-    // Verify user owns this profile
-    if (profile.userId !== decoded.userId) {
-      return NextResponse.json(
-        { error: { message: 'Not authorized to update this profile', code: 'FORBIDDEN' } },
+        { error: 'Only service providers can update diagnostic fees' },
         { status: 403 }
       )
     }
 
-    // Parse request body
-    const body = await request.json()
-    const { diagnosticFee } = body
+    const { diagnosticFee } = await request.json()
 
     // Validate diagnostic fee
-    if (typeof diagnosticFee !== 'number') {
+    if (typeof diagnosticFee !== 'number' || diagnosticFee < 0) {
       return NextResponse.json(
-        { error: { message: 'Diagnostic fee must be a number', code: 'VALIDATION_ERROR' } },
+        { error: 'Invalid diagnostic fee' },
         { status: 400 }
       )
     }
 
-    if (diagnosticFee < 50 || diagnosticFee > 150) {
-      return NextResponse.json(
-        { error: { message: 'Diagnostic fee must be between $50 and $150', code: 'VALIDATION_ERROR' } },
-        { status: 400 }
-      )
-    }
-
-    // Update profile
+    // Update provider profile
     const updatedProfile = await prisma.serviceProviderProfile.update({
-      where: { id: params.id },
-      data: { diagnosticFee }
+      where: {
+        id: params.id,
+        userId: user.id, // Ensure provider can only update their own profile
+      },
+      data: {
+        diagnosticFee,
+      },
     })
 
     return NextResponse.json({
-      success: true,
-      profile: updatedProfile
+      message: 'Diagnostic fee updated successfully',
+      diagnosticFee: updatedProfile.diagnosticFee,
     })
-
-  } catch (error) {
-    console.error('[DIAGNOSTIC_FEE_UPDATE_ERROR]', error)
+  } catch (error: any) {
+    console.error('Update diagnostic fee error:', error)
     return NextResponse.json(
-      { error: { message: 'Failed to update diagnostic fee', code: 'SERVER_ERROR' } },
+      { error: error.message || 'Failed to update diagnostic fee' },
       { status: 500 }
     )
   }

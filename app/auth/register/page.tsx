@@ -36,7 +36,7 @@ function RegisterForm() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch('/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -53,10 +53,17 @@ function RegisterForm() {
         }),
       })
 
-      const data = await response.json()
+      // Check if response has content before parsing JSON
+      const text = await response.text()
+      let data
+      try {
+        data = text ? JSON.parse(text) : {}
+      } catch (e) {
+        throw new Error('Server error: Invalid response format')
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Registration failed')
+        throw new Error(data.error || `Registration failed (${response.status})`)
       }
 
       // Redirect to login
