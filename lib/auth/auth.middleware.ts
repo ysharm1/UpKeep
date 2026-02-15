@@ -91,3 +91,34 @@ export async function requireRole(request: NextRequest, allowedRoles: UserRole[]
 
   return user
 }
+
+/**
+ * Verify authentication and return user info
+ * Used by API routes to check if user is authenticated
+ */
+export async function verifyAuth(request: NextRequest): Promise<{
+  authenticated: boolean
+  userId?: string
+  userEmail?: string
+  userRole?: UserRole
+}> {
+  try {
+    const authHeader = request.headers.get('authorization')
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return { authenticated: false }
+    }
+
+    const token = authHeader.substring(7)
+    const user = await authService.validateSession(token)
+
+    return {
+      authenticated: true,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+    }
+  } catch (error) {
+    return { authenticated: false }
+  }
+}

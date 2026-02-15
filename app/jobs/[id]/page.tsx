@@ -4,6 +4,83 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
+// Progress bar component
+function JobProgressBar({ status }: { status: string }) {
+  const steps = [
+    { key: 'submitted', label: 'Submitted', icon: '📝' },
+    { key: 'diagnostic_scheduled', label: 'Provider Assigned', icon: '👷' },
+    { key: 'diagnostic_completed', label: 'Assessment', icon: '🔍' },
+    { key: 'repair_pending_approval', label: 'Quote', icon: '💰' },
+    { key: 'completed', label: 'Complete', icon: '✅' },
+  ]
+
+  const statusOrder = [
+    'submitted',
+    'pending_match',
+    'matched',
+    'diagnostic_scheduled',
+    'diagnostic_completed',
+    'repair_pending_approval',
+    'repair_approved',
+    'in_progress',
+    'completed',
+  ]
+
+  const currentIndex = statusOrder.indexOf(status)
+
+  const getStepStatus = (stepKey: string) => {
+    const stepIndex = statusOrder.indexOf(stepKey)
+    if (stepIndex <= currentIndex) return 'complete'
+    if (stepIndex === currentIndex + 1) return 'current'
+    return 'upcoming'
+  }
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center justify-between">
+        {steps.map((step, index) => {
+          const stepStatus = getStepStatus(step.key)
+          return (
+            <div key={step.key} className="flex-1 flex items-center">
+              <div className="flex flex-col items-center flex-1">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${
+                    stepStatus === 'complete'
+                      ? 'bg-green-500 text-white'
+                      : stepStatus === 'current'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-200 text-gray-400'
+                  }`}
+                >
+                  {stepStatus === 'complete' ? '✓' : step.icon}
+                </div>
+                <span
+                  className={`text-xs mt-2 text-center ${
+                    stepStatus === 'complete' || stepStatus === 'current'
+                      ? 'text-gray-900 font-medium'
+                      : 'text-gray-400'
+                  }`}
+                >
+                  {step.label}
+                </span>
+              </div>
+              {index < steps.length - 1 && (
+                <div
+                  className={`h-1 flex-1 mx-2 ${
+                    getStepStatus(steps[index + 1].key) === 'complete'
+                      ? 'bg-green-500'
+                      : 'bg-gray-200'
+                  }`}
+                />
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function JobDetailsPage() {
   const router = useRouter()
   const params = useParams()
@@ -91,6 +168,9 @@ export default function JobDetailsPage() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow-lg p-8">
+          {/* Progress Bar */}
+          <JobProgressBar status={job.status} />
+
           <div className="flex justify-between items-start mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">{job.category}</h1>
@@ -111,11 +191,7 @@ export default function JobDetailsPage() {
                   : 'bg-blue-100 text-blue-800'
               }`}
             >
-              {job.status === 'resolved_diy' ? 'Solved with AI' : 
-               job.status === 'ai_diagnosis' ? 'AI Diagnosing' :
-               job.status === 'pending_match' ? 'Finding Professional' :
-               job.status === 'matched' ? 'Professional Found' :
-               job.status}
+              {job.status.replace(/_/g, ' ')}
             </span>
           </div>
 
@@ -162,28 +238,47 @@ export default function JobDetailsPage() {
           </div>
 
           <div className="mt-8 pt-6 border-t">
-            <div className="flex gap-4">
-              {job.status === 'pending_match' && (
-                <button 
-                  onClick={() => router.push('/problems/new')}
+            <div className="flex gap-4 flex-wrap">
+              {/* View Diagnostic Report */}
+              {['diagnostic_completed', 'repair_pending_approval', 'repair_approved', 'in_progress', 'completed'].includes(job.status) && (
+                <Link
+                  href={`/jobs/${jobId}/diagnostic-report`}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                >
+                  View Professional Assessment
+                </Link>
+              )}
+
+              {/* Approve Repair Quote */}
+              {job.status === 'repair_pending_approval' && (
+                <Link
+                  href={`/jobs/${jobId}/approve-repair`}
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                >
+                  Review Repair Quote
+                </Link>
+              )}
+
+              {/* Find Professionals */}
+              {['submitted', 'pending_match'].includes(job.status) && (
+                <Link
+                  href={`/problems/${jobId}/professionals`}
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
                 >
                   Find Professionals
-                </button>
+                </Link>
               )}
-              {job.status === 'matched' && (
-                <button className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">
-                  Contact Provider
-                </button>
-              )}
+
+              {/* Continue AI Chat */}
               {['submitted', 'ai_diagnosis'].includes(job.status) && (
                 <Link
-                  href={`/problems/${job.id}/chat`}
-                  className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium inline-block"
+                  href={`/problems/${jobId}/chat`}
+                  className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
                 >
                   Continue AI Diagnosis
                 </Link>
               )}
+
               <Link
                 href="/dashboard"
                 className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"

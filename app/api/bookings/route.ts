@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
-import { verifyToken } from '@/lib/auth/auth.middleware'
+import { verifyAuth } from '@/lib/auth/auth.middleware'
 import Stripe from 'stripe'
 
 const prisma = new PrismaClient()
@@ -11,38 +11,28 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
+    const authResult = await verifyAuth(request)
+    if (!authResult.authenticated || !authResult.userId) {
       return NextResponse.json(
         { error: { message: 'Authentication required', code: 'AUTH_REQUIRED' } },
         { status: 401 }
       )
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const decoded = verifyToken(token)
-    
-    if (!decoded) {
-      return NextResponse.json(
-        { error: { message: 'Invalid token', code: 'AUTH_REQUIRED' } },
-        { status: 401 }
-      )
-    }
-
     // Parse request body
     const body = await request.json()
-    const { jobRequestId, providerId } = body
+    const { jobId, providerId } = body
 
-    if (!jobRequestId || !providerId) {
+    if (!jobId || !providerId) {
       return NextResponse.json(
-        { error: { message: 'Missing required fields: jobRequestId, providerId', code: 'VALIDATION_ERROR' } },
+        { error: { message: 'Missing required fields: jobId, providerId', code: 'VALIDATION_ERROR' } },
         { status: 400 }
       )
     }
 
     // Get job request
     const job = await prisma.jobRequest.findUnique({
-      where: { id: jobRequestId },
+      where: { id: jobId },
       include: {
         homeowner: {
           include: {
@@ -59,6 +49,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Verify user owns this job
+    if (job.homeowner.userId !== authResult.userId) {
+      return NextResponse.json(
+        { error: { message: 'Unauthorized', code: 'FORBIDDEN' } },
+        { status: 403 }
+      )
+    }
     // Verify user owns this job
     if (job.homeowner.userId !== decoded.userId) {
       return NextResponse.json(
