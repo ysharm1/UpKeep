@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import StripePaymentForm from '@/app/components/StripePaymentForm'
 
 export default function ApproveRepairPage() {
   const router = useRouter()
@@ -12,6 +13,7 @@ export default function ApproveRepairPage() {
   const [loading, setLoading] = useState(true)
   const [approving, setApproving] = useState(false)
   const [declining, setDeclining] = useState(false)
+  const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [job, setJob] = useState<any>(null)
   const [quote, setQuote] = useState<any>(null)
 
@@ -61,11 +63,7 @@ export default function ApproveRepairPage() {
     }
   }
 
-  const handleApprove = async () => {
-    if (!confirm('Are you sure you want to approve this repair quote? Payment will be authorized.')) {
-      return
-    }
-
+  const handleApprove = async (paymentMethodId: string) => {
     setApproving(true)
     try {
       const token = localStorage.getItem('accessToken')
@@ -75,6 +73,9 @@ export default function ApproveRepairPage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          paymentMethodId
+        })
       })
 
       if (!response.ok) {
@@ -86,9 +87,14 @@ export default function ApproveRepairPage() {
       router.push(`/jobs/${jobId}`)
     } catch (error: any) {
       alert(`Approval failed: ${error.message}`)
+      throw error
     } finally {
       setApproving(false)
     }
+  }
+
+  const handlePaymentError = (errorMessage: string) => {
+    alert(`Payment failed: ${errorMessage}`)
   }
 
   const handleDecline = async () => {
@@ -222,22 +228,41 @@ export default function ApproveRepairPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-4">
-            <button
-              onClick={handleApprove}
-              disabled={approving || declining}
-              className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold disabled:opacity-50 transition-colors"
-            >
-              {approving ? 'Approving...' : 'Approve & Authorize Payment'}
-            </button>
-            <button
-              onClick={handleDecline}
-              disabled={approving || declining}
-              className="flex-1 px-6 py-3 border-2 border-red-600 text-red-600 rounded-lg hover:bg-red-50 font-semibold disabled:opacity-50 transition-colors"
-            >
-              {declining ? 'Declining...' : 'Decline Quote'}
-            </button>
-          </div>
+          {!showPaymentForm ? (
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowPaymentForm(true)}
+                disabled={approving || declining}
+                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold disabled:opacity-50 transition-colors"
+              >
+                Approve & Authorize Payment
+              </button>
+              <button
+                onClick={handleDecline}
+                disabled={approving || declining}
+                className="flex-1 px-6 py-3 border-2 border-red-600 text-red-600 rounded-lg hover:bg-red-50 font-semibold disabled:opacity-50 transition-colors"
+              >
+                {declining ? 'Declining...' : 'Decline Quote'}
+              </button>
+            </div>
+          ) : (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Information</h3>
+              <StripePaymentForm
+                amount={quote.totalAmount}
+                onSuccess={handleApprove}
+                onError={handlePaymentError}
+                buttonText={approving ? 'Approving...' : `Approve & Authorize $${quote.totalAmount.toFixed(2)}`}
+              />
+              <button
+                onClick={() => setShowPaymentForm(false)}
+                disabled={approving}
+                className="mt-4 text-sm text-gray-600 hover:text-gray-900"
+              >
+                ← Back
+              </button>
+            </div>
+          )}
 
           <div className="mt-6 text-center">
             <Link

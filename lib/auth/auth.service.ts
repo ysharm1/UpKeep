@@ -25,6 +25,12 @@ export interface RegisterData {
     phoneNumber?: string
     businessName?: string
   }
+  address?: {
+    street: string
+    city: string
+    state: string
+    zipCode: string
+  }
 }
 
 export class AuthService {
@@ -33,7 +39,7 @@ export class AuthService {
    * Requirements: 1.1, 1.5
    */
   async register(data: RegisterData): Promise<User> {
-    const { email, password, role, profileData } = data
+    const { email, password, role, profileData, address } = data
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -52,6 +58,22 @@ export class AuthService {
     // Hash password with bcrypt (salt rounds: 12)
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS)
 
+    // Create address if provided (for homeowners)
+    let addressId: string | undefined
+    if (role === UserRole.homeowner && address) {
+      const createdAddress = await prisma.address.create({
+        data: {
+          street: address.street,
+          city: address.city,
+          state: address.state,
+          zipCode: address.zipCode,
+          latitude: 37.7749, // Default coordinates, will be geocoded in production
+          longitude: -122.4194,
+        },
+      })
+      addressId = createdAddress.id
+    }
+
     // Create user with profile based on role
     const user = await prisma.user.create({
       data: {
@@ -65,6 +87,7 @@ export class AuthService {
               firstName: profileData?.firstName || '',
               lastName: profileData?.lastName || '',
               phoneNumber: profileData?.phoneNumber || '',
+              ...(addressId && { addressId }),
             },
           },
         }),

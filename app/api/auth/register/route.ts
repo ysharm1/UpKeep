@@ -5,7 +5,7 @@ import { UserRole } from '@prisma/client'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password, role, profileData } = body
+    const { email, password, role, profileData, address } = body
 
     // Validate required fields
     if (!email || !password || !role) {
@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
       password,
       role,
       profileData,
+      address,
     })
 
     // Return user without password hash

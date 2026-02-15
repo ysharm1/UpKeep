@@ -14,18 +14,18 @@ export async function POST(request: NextRequest) {
     const authResult = await verifyAuth(request)
     if (!authResult.authenticated || !authResult.userId) {
       return NextResponse.json(
-        { error: { message: 'Authentication required', code: 'AUTH_REQUIRED' } },
+        { error: 'Authentication required' },
         { status: 401 }
       )
     }
 
     // Parse request body
     const body = await request.json()
-    const { jobId, providerId } = body
+    const { jobId, providerId, scheduledDate, paymentMethodId } = body
 
-    if (!jobId || !providerId) {
+    if (!jobId || !providerId || !scheduledDate || !paymentMethodId) {
       return NextResponse.json(
-        { error: { message: 'Missing required fields: jobId, providerId', code: 'VALIDATION_ERROR' } },
+        { error: 'Missing required fields: jobId, providerId, scheduledDate, paymentMethodId' },
         { status: 400 }
       )
     }
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     if (!job) {
       return NextResponse.json(
-        { error: { message: 'Job request not found', code: 'NOT_FOUND' } },
+        { error: 'Job request not found' },
         { status: 404 }
       )
     }
@@ -52,65 +52,81 @@ export async function POST(request: NextRequest) {
     // Verify user owns this job
     if (job.homeowner.userId !== authResult.userId) {
       return NextResponse.json(
-        { error: { message: 'Unauthorized', code: 'FORBIDDEN' } },
-        { status: 403 }
-      )
-    }
-    // Verify user owns this job
-    if (job.homeowner.userId !== decoded.userId) {
-      return NextResponse.json(
-        { error: { message: 'Not authorized to book this job', code: 'FORBIDDEN' } },
+        { error: 'Not authorized to book this job' },
         { status: 403 }
       )
     }
 
     // Get provider's diagnostic fee
     const provider = await prisma.serviceProviderProfile.findUnique({
-      where: { id: providerId }
+      where: { id: providerId },
+      include: {
+        user: true
+      }
     })
 
     if (!provider) {
       return NextResponse.json(
-        { error: { message: 'Provider not found', code: 'NOT_FOUND' } },
+        { error: 'Provider not found' },
         { status: 404 }
       )
     }
 
     if (!provider.diagnosticFee) {
       return NextResponse.json(
-        { error: { message: 'Provider has not set diagnostic fee', code: 'VALIDATION_ERROR' } },
+        { error: 'Provider has not set diagnostic fee' },
         { status: 400 }
       )
     }
 
     const diagnosticFee = parseFloat(provider.diagnosticFee.toString())
 
-    // Create Stripe PaymentIntent (authorize only, don't capture)
+    // Create Stripe PaymentIntent with payment method (authorize only, don't capture)
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(diagnosticFee * 100), // Convert to cents
       currency: 'usd',
+      payment_method: paymentMethodId,
+      confirm: true,
       capture_method: 'manual', // Don't capture immediately
       metadata: {
-        jobRequestId,
+        jobRequestId: jobId,
         providerId,
         type: 'diagnostic'
       }
     })
 
-    // Update job request
+    // Update job request with scheduled date and payment intent
     const updatedJob = await prisma.jobRequest.update({
-      where: { id: jobRequestId },
+      where: { id: jobId },
       data: {
         serviceProviderId: providerId,
         diagnosticPaymentIntentId: paymentIntent.id,
+        scheduledDate: new Date(scheduledDate),
         status: 'diagnostic_scheduled'
       }
     })
 
+    // Send email notification to provider
+    try {
+      const emailService = require('@/lib/notifications/email.service').emailService
+      await emailService.sendBookingConfirmation(
+        provider.user.email,
+        provider.businessName || 'Provider',
+        job.homeowner.user.name || 'Homeowner',
+        job.description,
+        new Date(scheduledDate),
+        diagnosticFee
+      )
+    } catch (emailError) {
+      console.error('[EMAIL_ERROR]', emailError)
+      // Don't fail the booking if email fails
+    }
+
     console.log('[BOOKING_CREATED]', {
-      jobId: jobRequestId,
+      jobId,
       providerId,
       diagnosticFee,
+      scheduledDate,
       paymentIntentId: paymentIntent.id
     })
 
@@ -120,6 +136,7 @@ export async function POST(request: NextRequest) {
         jobId: updatedJob.id,
         providerId,
         diagnosticFee,
+        scheduledDate: updatedJob.scheduledDate,
         paymentIntentId: paymentIntent.id,
         status: updatedJob.status
       }
@@ -131,13 +148,20 @@ export async function POST(request: NextRequest) {
     // Handle Stripe errors
     if (error.type === 'StripeCardError') {
       return NextResponse.json(
-        { error: { message: 'Your card was declined', code: 'CARD_DECLINED' } },
+        { error: 'Your card was declined' },
+        { status: 400 }
+      )
+    }
+
+    if (error.type === 'StripeInvalidRequestError') {
+      return NextResponse.json(
+        { error: 'Invalid payment information' },
         { status: 400 }
       )
     }
 
     return NextResponse.json(
-      { error: { message: 'Failed to create booking', code: 'SERVER_ERROR' } },
+      { error: error.message || 'Failed to create booking' },
       { status: 500 }
     )
   }

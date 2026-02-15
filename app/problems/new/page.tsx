@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import PhotoUpload from '@/app/components/PhotoUpload'
 
 export default function NewProblemPage() {
   const router = useRouter()
@@ -15,13 +16,55 @@ export default function NewProblemPage() {
       state: '',
       zipCode: '',
     },
-    media: [] as File[],
+    mediaUrls: [] as string[],
   })
   const [aiResponse, setAiResponse] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [loadingProfile, setLoadingProfile] = useState(true)
   const [chatMessages, setChatMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([])
   const [followUpQuestion, setFollowUpQuestion] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
+
+  // Fetch user profile and auto-populate address
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('accessToken')
+        if (!token) {
+          router.push('/auth/login')
+          return
+        }
+
+        const response = await fetch('/api/profile', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          // Auto-populate address if user has one saved
+          if (data.profile?.address) {
+            setProblem(prev => ({
+              ...prev,
+              location: {
+                street: data.profile.address.street || '',
+                city: data.profile.address.city || '',
+                state: data.profile.address.state || '',
+                zipCode: data.profile.address.zipCode || '',
+              },
+            }))
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile:', error)
+      } finally {
+        setLoadingProfile(false)
+      }
+    }
+
+    fetchProfile()
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,6 +83,7 @@ export default function NewProblemPage() {
         body: JSON.stringify({
           category: problem.category,
           description: problem.description,
+          mediaUrls: problem.mediaUrls,
           location: {
             ...problem.location,
             latitude: 37.7749, // Default to SF coordinates for demo
@@ -130,6 +174,7 @@ export default function NewProblemPage() {
         body: JSON.stringify({
           category: problem.category,
           description: problem.description,
+          mediaUrls: problem.mediaUrls,
           location: {
             ...problem.location,
             latitude: 37.7749, // Default to SF coordinates for demo
@@ -498,7 +543,7 @@ export default function NewProblemPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location
+                Location {problem.location.street && <span className="text-green-600 text-xs">(Pre-filled from your profile)</span>}
               </label>
               <div className="grid grid-cols-2 gap-4">
                 <input
@@ -540,17 +585,11 @@ export default function NewProblemPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Photos or Videos (Optional)
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p className="mt-2 text-sm text-gray-600">
-                  Upload photos or videos to help diagnose the problem
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Coming soon - media upload integration
-                </p>
-              </div>
+              <PhotoUpload
+                onPhotosChange={(urls) => setProblem({ ...problem, mediaUrls: urls })}
+                maxPhotos={5}
+                context="job_request"
+              />
             </div>
 
             <div className="border-t pt-6">

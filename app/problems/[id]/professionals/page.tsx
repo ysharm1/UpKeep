@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import BookingModal from '@/app/components/BookingModal'
 
 interface Provider {
   id: string
@@ -26,91 +27,75 @@ interface ProviderCardProps {
 
 function ProviderCard({ provider, jobId, onBookingSuccess }: ProviderCardProps) {
   const router = useRouter()
-  const [booking, setBooking] = useState(false)
+  const [showBookingModal, setShowBookingModal] = useState(false)
 
-  const handleBook = async () => {
-    setBooking(true)
-    try {
-      const token = localStorage.getItem('accessToken')
-      const response = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jobId,
-          providerId: provider.id,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to book')
-      }
-
-      await response.json()
-      alert(`Diagnostic visit booked! Payment of $${provider.diagnosticFee} authorized.\n\n${provider.businessName} has been assigned to your job.`)
-      onBookingSuccess()
-      router.push(`/jobs/${jobId}`)
-    } catch (error: any) {
-      alert(`Booking failed: ${error.message}`)
-    } finally {
-      setBooking(false)
-    }
+  const handleBookingSuccess = () => {
+    setShowBookingModal(false)
+    alert(`Diagnostic visit booked with ${provider.businessName}!\n\nYou'll receive a confirmation email shortly.`)
+    onBookingSuccess()
+    router.push(`/jobs/${jobId}`)
   }
 
   return (
-    <div className="border-2 border-gray-200 rounded-lg p-6 hover:border-blue-300 transition-all">
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-semibold text-xl text-gray-900">{provider.businessName}</h4>
-            {provider.isAvailable && (
-              <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded font-medium">Available</span>
-            )}
-          </div>
-          <div className="flex items-center gap-3 mt-2">
-            <div className="flex items-center gap-1">
-              <div className="flex text-yellow-400 text-sm">
-                {'★'.repeat(Math.floor(provider.rating))}
-                {provider.rating % 1 !== 0 && '☆'}
+    <>
+      <div className="border-2 border-gray-200 rounded-lg p-6 hover:border-blue-300 transition-all">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <h4 className="font-semibold text-xl text-gray-900">{provider.businessName}</h4>
+              {provider.isAvailable && (
+                <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded font-medium">Available</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3 mt-2">
+              <div className="flex items-center gap-1">
+                <div className="flex text-yellow-400 text-sm">
+                  {'★'.repeat(Math.floor(provider.rating))}
+                  {provider.rating % 1 !== 0 && '☆'}
+                </div>
+                <span className="text-sm text-gray-600">{provider.rating} ({provider.reviewCount} reviews)</span>
               </div>
-              <span className="text-sm text-gray-600">{provider.rating} ({provider.reviewCount} reviews)</span>
+              {provider.isVerified && (
+                <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded font-medium">Verified</span>
+              )}
             </div>
-            {provider.isVerified && (
-              <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded font-medium">Verified</span>
+            <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+              <span>📍 {provider.distance.toFixed(1)} miles away</span>
+              <span>🕒 Responds in ~{provider.estimatedResponseHours}hrs</span>
+            </div>
+            {!provider.isAvailable && (
+              <div className="mt-2 text-xs text-orange-600">
+                ⚠️ Currently busy with {provider.activeJobsCount} jobs
+              </div>
             )}
           </div>
-          <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-            <span>📍 {provider.distance.toFixed(1)} miles away</span>
-            <span>🕒 Responds in ~{provider.estimatedResponseHours}hrs</span>
+
+          <div className="text-right ml-6">
+            <div className="text-sm text-gray-500 mb-1">Diagnostic Visit</div>
+            <div className="text-3xl font-bold text-gray-900">${provider.diagnosticFee}</div>
           </div>
-          {!provider.isAvailable && (
-            <div className="mt-2 text-xs text-orange-600">
-              ⚠️ Currently busy with {provider.activeJobsCount} jobs
-            </div>
-          )}
         </div>
-        
-        <div className="text-right ml-6">
-          <div className="text-sm text-gray-500 mb-1">Diagnostic Visit</div>
-          <div className="text-3xl font-bold text-gray-900">${provider.diagnosticFee}</div>
-        </div>
+
+        <button
+          onClick={() => setShowBookingModal(true)}
+          className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-lg transition-colors"
+        >
+          Book Diagnostic Visit - ${provider.diagnosticFee}
+        </button>
+
+        <p className="text-xs text-gray-500 text-center mt-2">
+          Payment authorized now, charged after visit
+        </p>
       </div>
 
-      <button
-        onClick={handleBook}
-        disabled={booking}
-        className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-lg disabled:opacity-50 transition-colors"
-      >
-        {booking ? 'Booking...' : `Book Diagnostic Visit - $${provider.diagnosticFee}`}
-      </button>
-      
-      <p className="text-xs text-gray-500 text-center mt-2">
-        Payment authorized now, charged after visit
-      </p>
-    </div>
+      <BookingModal
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+        provider={provider}
+        jobId={jobId}
+        onSuccess={handleBookingSuccess}
+      />
+    </>
   )
 }
 

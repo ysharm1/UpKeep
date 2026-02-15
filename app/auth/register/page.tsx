@@ -17,6 +17,12 @@ export default function RegisterPage() {
     lastName: '',
     businessName: '',
     phoneNumber: '',
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
+    },
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -40,6 +46,7 @@ export default function RegisterPage() {
             businessName: formData.businessName,
             phoneNumber: formData.phoneNumber,
           },
+          address: formData.address,
         }),
       })
 
@@ -178,6 +185,53 @@ export default function RegisterPage() {
                 placeholder="+1234567890"
               />
             </div>
+
+            {formData.role === 'homeowner' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Home Address
+                </label>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Street Address"
+                    value={formData.address.street}
+                    onChange={e => setFormData({ ...formData, address: { ...formData.address, street: e.target.value } })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      placeholder="City"
+                      value={formData.address.city}
+                      onChange={e => setFormData({ ...formData, address: { ...formData.address, city: e.target.value } })}
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="State"
+                      value={formData.address.state}
+                      onChange={e => setFormData({ ...formData, address: { ...formData.address, state: e.target.value } })}
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="ZIP Code"
+                    value={formData.address.zipCode}
+                    onChange={e => setFormData({ ...formData, address: { ...formData.address, zipCode: e.target.value } })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  We'll use this to find professionals near you
+                </p>
+              </div>
+            )}
           </div>
 
           <button
