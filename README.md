@@ -1,224 +1,314 @@
-# UpKeep - Home Repair Marketplace Platform
+# UpKeep - Home Maintenance Marketplace
 
-A two-sided marketplace connecting homeowners with local service providers for HVAC, plumbing, electrical, and home maintenance services. Features AI-powered diagnostics, location-based matching, and secure payments.
+Professional home maintenance and repair services with instant booking and transparent pricing.
 
-## 🚀 Features
+## 🚀 Current Status
+
+**✅ Backend Implementation Complete**
+- Instant booking flow with Stripe payments
+- Diagnostic fee management
+- Repair quote system
+- Admin operations dashboard
+- Payment capture and refund system
+- Provider management
+
+**✅ Core Features Ready**
+- Homeowner job submission
+- AI-powered problem diagnosis
+- Provider nearby search
+- Instant booking with payment authorization
+- Repair quote approval
+- Job completion with automatic payouts
+- Admin manual intervention tools
+
+**📋 Ready for Testing & Deployment**
+
+## 🏗️ Tech Stack
+
+- **Frontend**: Next.js 14, React, TailwindCSS
+- **Backend**: Next.js API Routes
+- **Database**: PostgreSQL with Prisma ORM
+- **Payments**: Stripe (authorize + capture flow)
+- **AI**: OpenAI GPT-4
+- **Deployment**: Vercel
+- **Media**: AWS S3 (optional)
+
+## 📚 Documentation
+
+- **[QUICK_START.md](./QUICK_START.md)** - Get running in 5 minutes
+- **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** - Complete testing instructions
+- **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** - Production deployment steps
+- **[EXECUTE.md](./EXECUTE.md)** - Launch strategy and execution plan
+- **[SHIP_IT.md](./SHIP_IT.md)** - Product overview and go-to-market
+- **[GTM_STRATEGY.md](./GTM_STRATEGY.md)** - Go-to-market strategy
+- **[OPERATIONS_PLAYBOOK.md](./OPERATIONS_PLAYBOOK.md)** - Daily operations guide
+
+## 🎯 Key Features
 
 ### For Homeowners
-- 📸 Submit problems with photos and videos
-- 🤖 AI-powered diagnostics with DIY solutions
-- 🔍 Match with verified local professionals
-- 💬 In-app messaging
-- ⭐ Rate and review service providers
-- 💳 Secure payment processing
+- Submit maintenance problems with photos
+- Chat with AI for instant diagnosis
+- Find verified professionals nearby
+- Book diagnostic visits instantly
+- Receive transparent repair quotes
+- Approve quotes with one click
+- Payments captured only after work is done
 
 ### For Service Providers
-- 📋 Professional profile with verification
-- 📍 Define service area (radius or zip codes)
-- 🔔 Receive qualified job requests
-- 💼 Manage jobs and communicate with clients
-- ⭐ Build reputation through ratings
-- 💰 Fast, secure payments
+- Set your own diagnostic fee ($50-$150)
+- Receive instant bookings
+- Submit repair quotes on-site
+- Get paid automatically (85% of total)
+- Track all jobs in one dashboard
 
-## 🛠️ Tech Stack
+### For Admins
+- Daily operations dashboard
+- Manual status changes
+- Force capture payments
+- Issue refunds
+- Reassign jobs
+- Manage provider status
+- Retry failed payments
 
-- **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS
-- **Backend**: Node.js 20, Express.js, Prisma ORM
-- **Database**: PostgreSQL 15
-- **AI**: OpenAI GPT-4 (with Vision API)
-- **Storage**: AWS S3
-- **Payments**: Stripe
-- **Testing**: Jest, fast-check (property-based testing)
+## 💳 Payment Flow
 
-## 📦 Installation
+1. **Booking**: Diagnostic fee authorized (not captured)
+2. **Visit**: Provider completes diagnostic
+3. **Capture Diagnostic**: Provider captures diagnostic payment
+4. **Quote**: Provider submits repair quote
+5. **Approval**: Homeowner approves, repair payment authorized
+6. **Completion**: Provider completes work, repair payment captured
+7. **Payout**: Provider receives 85%, platform keeps 15%
 
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd UpKeep
-   ```
+## 🚀 Quick Start
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+```bash
+# Install dependencies
+npm install
 
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Edit `.env` and add your credentials:
-   - `DATABASE_URL` - PostgreSQL connection string
-   - `JWT_SECRET` - Secret for access tokens
-   - `JWT_REFRESH_SECRET` - Secret for refresh tokens
-   - `OPENAI_API_KEY` - OpenAI API key
-   - `STRIPE_SECRET_KEY` - Stripe secret key
-   - `AWS_ACCESS_KEY_ID` - AWS access key
-   - `AWS_SECRET_ACCESS_KEY` - AWS secret key
-   - `CLOUD_STORAGE_BUCKET` - S3 bucket name
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your keys
 
-4. **Set up database**
-   ```bash
-   # Generate Prisma client
-   npm run prisma:generate
-   
-   # Run migrations
-   npm run prisma:migrate
-   
-   # Seed database (optional)
-   npm run prisma:seed
-   ```
+# Set up database
+npx prisma migrate dev
+npx prisma generate
 
-5. **Run development server**
-   ```bash
-   npm run dev
-   ```
+# Start development server
+npm run dev
+```
 
-   Open [http://localhost:3000](http://localhost:3000)
+Visit http://localhost:3000
+
+See [QUICK_START.md](./QUICK_START.md) for detailed instructions.
 
 ## 🧪 Testing
 
-```bash
-# Run all tests
-npm test
+Use Stripe test cards:
+- Success: `4242 4242 4242 4242`
+- Declined: `4000 0000 0000 0002`
 
-# Run tests with coverage
-npm test:coverage
+See [TESTING_GUIDE.md](./TESTING_GUIDE.md) for complete testing flows.
 
-# Run tests in watch mode
-npm run test:watch
-```
+## 📦 Deployment
 
-## 📚 API Documentation
+Deploy to Vercel in minutes:
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `POST /api/auth/logout` - Logout user
-- `POST /api/auth/refresh` - Refresh access token
-- `POST /api/auth/reset-password/request` - Request password reset
-- `POST /api/auth/reset-password/confirm` - Confirm password reset
+1. Connect GitHub repository
+2. Add environment variables
+3. Deploy
+4. Run database migrations
 
-### Jobs
-- `POST /api/jobs` - Create job request
-- `GET /api/jobs` - Get job history (with filters)
-- `GET /api/jobs/[id]` - Get job details
-- `PATCH /api/jobs/[id]` - Update job status
+See [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for step-by-step instructions.
 
-### Media
-- `POST /api/media/upload` - Upload media file
-- `GET /api/media/[id]` - Get media URL
-- `DELETE /api/media/[id]` - Delete media file
-
-## 🏗️ Project Structure
+## 🗂️ Project Structure
 
 ```
-UpKeep/
 ├── app/                    # Next.js app directory
 │   ├── api/               # API routes
-│   ├── auth/              # Auth pages
-│   ├── dashboard/         # Dashboard page
-│   └── page.tsx           # Landing page
+│   │   ├── admin/        # Admin endpoints
+│   │   ├── auth/         # Authentication
+│   │   ├── bookings/     # Instant booking
+│   │   ├── jobs/         # Job management
+│   │   └── providers/    # Provider management
+│   ├── admin/            # Admin dashboard
+│   ├── auth/             # Auth pages
+│   ├── dashboard/        # User dashboard
+│   ├── jobs/             # Job pages
+│   ├── problems/         # Problem submission
+│   └── provider/         # Provider pages
 ├── lib/                   # Business logic
-│   ├── ai/               # AI chatbot service
-│   ├── auth/             # Auth service & middleware
-│   ├── jobs/             # Job management
-│   ├── matching/         # Matching engine
-│   ├── media/            # Media & storage
-│   ├── messaging/        # Messaging service
-│   ├── payments/         # Payment service
-│   ├── providers/        # Provider profiles
-│   └── ratings/          # Rating system
+│   ├── auth/             # Auth services
+│   ├── jobs/             # Job services
+│   ├── payments/         # Payment services
+│   └── providers/        # Provider services
 ├── prisma/               # Database
 │   ├── schema.prisma     # Database schema
-│   └── seed.ts           # Seed data
-├── __tests__/            # Tests
-└── .kiro/specs/          # Spec documents
+│   └── migrations/       # Migration history
+└── .kiro/specs/          # Feature specifications
 ```
 
-## 🔐 Security Features
+## 🔑 Environment Variables
 
-- Password hashing with bcrypt (12 salt rounds)
-- JWT access tokens (15 min expiry)
-- JWT refresh tokens (7 day expiry)
-- Secure file upload validation
-- SQL injection protection (Prisma)
-- XSS protection
-- CORS configuration
-- Rate limiting ready
+Required:
+- `DATABASE_URL` - PostgreSQL connection string
+- `JWT_SECRET` - JWT signing secret
+- `STRIPE_SECRET_KEY` - Stripe API key
+- `OPENAI_API_KEY` - OpenAI API key
 
-## 🌍 Deployment
+Optional:
+- `AWS_ACCESS_KEY_ID` - For media uploads
+- `AWS_SECRET_ACCESS_KEY` - For media uploads
+- `SMTP_*` - For email notifications
 
-### Vercel (Recommended for Frontend)
-```bash
-npm run build
-vercel deploy
-```
+See `.env.example` for complete list.
 
-### Docker
-```bash
-docker build -t upkeep .
-docker run -p 3000:3000 upkeep
-```
+## 📊 Database Schema
 
-### Environment Variables for Production
-Ensure all environment variables are set in your deployment platform:
-- Database connection
-- API keys (OpenAI, Stripe, AWS)
-- JWT secrets
-- App URL
+Key models:
+- `User` - Homeowners, providers, admins
+- `HomeownerProfile` - Homeowner details
+- `ServiceProviderProfile` - Provider details with diagnostic fee
+- `JobRequest` - Maintenance jobs
+- `RepairQuote` - Repair quotes from providers
+- `Payment` - Payment records with platform fees
+- `Message` - Chat messages
 
-## 📈 Roadmap
+## 🛠️ API Endpoints
 
-### Phase 1 (MVP) ✅
-- User authentication
-- Job management
-- AI diagnostics
-- Provider matching
-- Messaging
-- Ratings
-- Payments
+### Authentication
+- `POST /api/auth/register` - Register user
+- `POST /api/auth/login` - Login
+- `POST /api/auth/refresh` - Refresh token
+- `GET /api/auth/me` - Get current user
 
-### Phase 2 (Post-Launch)
-- Real-time messaging with Socket.io
-- Email/SMS notifications
-- Advanced search and filters
-- Provider scheduling/calendar
-- Mobile app (React Native)
-- Admin dashboard
-- Analytics
+### Jobs
+- `GET /api/jobs` - List jobs
+- `GET /api/jobs/[id]` - Get job details
+- `POST /api/jobs/[id]/repair-quote` - Submit repair quote
+- `POST /api/jobs/[id]/approve-repair` - Approve repair quote
+- `POST /api/jobs/[id]/capture-diagnostic` - Capture diagnostic payment
+- `POST /api/jobs/[id]/complete` - Complete job
 
-### Phase 3 (Scale)
-- Multi-language support
-- Multiple payment methods
-- Background job processing
-- Advanced AI features
-- API for third-party integrations
+### Bookings
+- `POST /api/bookings` - Book diagnostic visit
+
+### Providers
+- `GET /api/providers/nearby` - Find nearby providers
+- `PUT /api/providers/[id]/diagnostic-fee` - Set diagnostic fee
+
+### Admin
+- `PUT /api/admin/jobs/[id]/status` - Change job status
+- `POST /api/admin/jobs/[id]/capture` - Force capture payment
+- `POST /api/admin/jobs/[id]/refund` - Issue refund
+- `POST /api/admin/jobs/[id]/force-complete` - Force complete job
+- `POST /api/admin/jobs/[id]/reassign` - Reassign job
+- `POST /api/admin/providers/[id]/toggle-active` - Toggle provider status
+- `POST /api/admin/payments/[id]/retry` - Retry failed payment
+
+## 🎨 UI Pages
+
+### Homeowner
+- `/` - Landing page
+- `/auth/register` - Registration
+- `/auth/login` - Login
+- `/dashboard` - Homeowner dashboard
+- `/problems/new` - Submit problem
+- `/problems/[id]/chat` - AI chat
+- `/problems/[id]/professionals` - Find professionals
+- `/jobs/[id]` - Job details
+- `/jobs/[id]/approve-repair` - Approve repair quote
+
+### Provider
+- `/provider/dashboard` - Provider dashboard
+- `/provider/settings` - Settings (diagnostic fee)
+- `/provider/jobs/[id]/repair-quote` - Submit repair quote
+
+### Admin
+- `/admin` - Admin operations dashboard
+
+## 🔒 Security
+
+- JWT authentication with refresh tokens
+- Role-based access control (Homeowner, Provider, Admin)
+- Stripe payment authorization before capture
+- Input validation on all endpoints
+- SQL injection protection via Prisma
+- XSS protection via React
+
+## 📈 Monitoring
+
+- Vercel Analytics for performance
+- Stripe Dashboard for payments
+- Admin dashboard for operations
+- Error logging in API routes
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+This is a private project. For questions or issues, contact the development team.
 
-## 📝 License
+## 📄 License
 
-This project is licensed under the MIT License.
+Proprietary - All rights reserved
 
-## 🙏 Acknowledgments
+## 🚦 Roadmap
 
-- OpenAI for GPT-4 API
-- Stripe for payment processing
-- AWS for cloud storage
-- Vercel for hosting platform
+### Phase 1: MVP (Current)
+- [x] Instant booking flow
+- [x] Payment authorization and capture
+- [x] Repair quote system
+- [x] Admin operations tools
+
+### Phase 2: Beta Launch
+- [ ] Mobile responsive testing
+- [ ] End-to-end testing
+- [ ] Production deployment
+- [ ] First 5-10 providers onboarded
+- [ ] First 10-20 jobs completed
+
+### Phase 3: Growth
+- [ ] Email notifications
+- [ ] SMS notifications
+- [ ] Provider ratings and reviews
+- [ ] Scheduling system
+- [ ] Multi-property management (for PMs)
+- [ ] Recurring maintenance plans
+
+### Phase 4: Scale
+- [ ] Mobile apps (iOS/Android)
+- [ ] Advanced analytics
+- [ ] Automated provider matching
+- [ ] Dynamic pricing
+- [ ] Warranty tracking
+- [ ] Integration with property management software
+
+## 💡 Product Philosophy
+
+- **Lean**: Ship core features first, add only what's requested
+- **Disciplined**: One clean engine, no forking
+- **Staged**: Test with real users before expanding
+- **Focused**: Property managers first, homeowners as overflow
+- **Operational**: Manual intervention tools for beta phase
 
 ## 📞 Support
 
-For support, email support@upkeep.com or open an issue in the repository.
+For technical issues:
+- Check documentation in this repo
+- Review error logs in Vercel dashboard
+- Check Stripe dashboard for payment issues
+- Use admin dashboard for manual intervention
+
+## 🎯 Success Metrics
+
+- Booking completion rate
+- Payment capture success rate
+- Provider response time
+- Homeowner satisfaction
+- Platform fee revenue
+- Provider retention
 
 ---
 
-Built with ❤️ for homeowners and service providers
+**Status**: Ready for testing and deployment
+**Last Updated**: February 2026
+**Version**: 1.0.0-beta
