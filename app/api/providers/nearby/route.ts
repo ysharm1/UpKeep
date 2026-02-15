@@ -72,6 +72,16 @@ export async function GET(request: NextRequest) {
           include: {
             centerLocation: true
           }
+        },
+        jobRequests: {
+          where: {
+            status: {
+              in: ['diagnostic_scheduled', 'in_progress', 'repair_approved']
+            }
+          },
+          select: {
+            id: true
+          }
         }
       }
     })
@@ -100,6 +110,17 @@ export async function GET(request: NextRequest) {
           inServiceArea = true
         }
 
+        // Calculate workload
+        const activeJobsCount = provider.jobRequests.length
+        const isAvailable = activeJobsCount < 3 // Consider "available" if less than 3 active jobs
+        
+        // Estimate response time based on workload
+        let estimatedResponseHours = 4 // Default
+        if (activeJobsCount === 0) estimatedResponseHours = 2
+        else if (activeJobsCount === 1) estimatedResponseHours = 4
+        else if (activeJobsCount === 2) estimatedResponseHours = 8
+        else estimatedResponseHours = 24
+
         return {
           id: provider.id,
           businessName: provider.businessName,
@@ -110,11 +131,23 @@ export async function GET(request: NextRequest) {
           specialties: provider.specialties,
           isVerified: provider.verified,
           profilePhotoUrl: provider.profilePhotoUrl,
-          inServiceArea
+          inServiceArea,
+          activeJobsCount,
+          isAvailable,
+          estimatedResponseHours
         }
       })
       .filter(p => p.inServiceArea) // Only include providers in service area
-      .sort((a, b) => a.distance - b.distance) // Sort by distance
+      .sort((a, b) => {
+        // Sort by: 1) availability, 2) distance, 3) rating
+        if (a.isAvailable !== b.isAvailable) {
+          return a.isAvailable ? -1 : 1 // Available providers first
+        }
+        if (Math.abs(a.distance - b.distance) > 5) {
+          return a.distance - b.distance // Then by distance (if difference > 5 miles)
+        }
+        return b.rating - a.rating // Then by rating
+      })
       .slice(0, 5) // Return top 5
 
     return NextResponse.json({
