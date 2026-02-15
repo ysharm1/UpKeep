@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { mediaService } from '@/lib/media/media.service'
 import { MediaContext } from '@prisma/client'

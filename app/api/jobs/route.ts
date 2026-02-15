@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { jobService } from '@/lib/jobs/job.service'
 import { authService } from '@/lib/auth/auth.service'
