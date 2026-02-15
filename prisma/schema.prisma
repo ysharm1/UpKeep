@@ -7,6 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum UserRole {
@@ -29,6 +30,10 @@ enum JobStatus {
   pending_match
   matched
   accepted
+  diagnostic_scheduled
+  diagnostic_completed
+  repair_pending_approval
+  repair_approved
   in_progress
   completed
   cancelled
@@ -40,6 +45,12 @@ enum PaymentStatus {
   captured
   failed
   refunded
+}
+
+enum QuoteStatus {
+  PENDING
+  APPROVED
+  DECLINED
 }
 
 enum MediaContext {
@@ -104,11 +115,19 @@ model ServiceProviderProfile {
   profilePhotoUrl   String?
   averageRating     Float             @default(0)
   reviewCount       Int               @default(0)
+  diagnosticFee     Decimal?          @db.Decimal(10, 2)
+  responseTimeAvg   Int?
+  cancellationRate  Decimal?          @db.Decimal(5, 2)
+  completionRate    Decimal?          @db.Decimal(5, 2)
+  reliabilityScore  Decimal?          @db.Decimal(5, 2)
+  isActive          Boolean           @default(true)
+  lastActiveAt      DateTime          @default(now())
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   
   serviceArea       ServiceArea?
   jobRequests       JobRequest[]
+  repairQuotes      RepairQuote[]
 }
 
 model ServiceArea {
@@ -141,26 +160,29 @@ model Address {
 
 // Job Management
 model JobRequest {
-  id                String                  @id @default(uuid())
-  homeownerId       String
-  homeowner         HomeownerProfile        @relation(fields: [homeownerId], references: [id])
-  serviceProviderId String?
-  serviceProvider   ServiceProviderProfile? @relation(fields: [serviceProviderId], references: [id])
-  category          ServiceCategory
-  description       String
-  locationId        String
-  location          Address                 @relation(fields: [locationId], references: [id])
-  status            JobStatus               @default(submitted)
-  priceQuote        Float?
-  scheduledDate     DateTime?
-  createdAt         DateTime                @default(now())
-  updatedAt         DateTime                @updatedAt
+  id                        String                  @id @default(uuid())
+  homeownerId               String
+  homeowner                 HomeownerProfile        @relation(fields: [homeownerId], references: [id])
+  serviceProviderId         String?
+  serviceProvider           ServiceProviderProfile? @relation(fields: [serviceProviderId], references: [id])
+  category                  ServiceCategory
+  description               String
+  locationId                String
+  location                  Address                 @relation(fields: [locationId], references: [id])
+  status                    JobStatus               @default(submitted)
+  priceQuote                Float?
+  scheduledDate             DateTime?
+  diagnosticPaymentIntentId String?
+  repairPaymentIntentId     String?
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
   
-  mediaFiles        MediaFile[]
-  conversation      Conversation?
-  messageThread     MessageThread?
-  ratings           Rating[]
-  payment           Payment?
+  mediaFiles                MediaFile[]
+  conversation              Conversation?
+  messageThread             MessageThread?
+  ratings                   Rating[]
+  payment                   Payment?
+  repairQuote               RepairQuote?
   
   @@index([homeownerId])
   @@index([serviceProviderId])
@@ -236,6 +258,25 @@ model Rating {
   
   @@unique([jobId, reviewerId])
   @@index([revieweeId])
+}
+
+// Repair Quotes
+model RepairQuote {
+  id           String                 @id @default(uuid())
+  jobRequestId String                 @unique
+  jobRequest   JobRequest             @relation(fields: [jobRequestId], references: [id], onDelete: Cascade)
+  providerId   String
+  provider     ServiceProviderProfile @relation(fields: [providerId], references: [id])
+  laborCost    Decimal                @db.Decimal(10, 2)
+  partsCost    Decimal                @db.Decimal(10, 2)
+  totalAmount  Decimal                @db.Decimal(10, 2)
+  notes        String?                @db.Text
+  status       QuoteStatus            @default(PENDING)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  
+  @@index([jobRequestId])
+  @@index([providerId])
 }
 
 // Payments

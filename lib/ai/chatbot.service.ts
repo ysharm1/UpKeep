@@ -1,10 +1,14 @@
-import { PrismaClient, ServiceCategory } from '@prisma/client'
+import { ServiceCategory } from '@prisma/client'
 import OpenAI from 'openai'
+import { prisma } from '../prisma'
 
-const prisma = new PrismaClient()
+// Check if API key is available
+if (!process.env.OPENAI_API_KEY) {
+  console.error('WARNING: OPENAI_API_KEY is not set in environment variables')
+}
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
+  apiKey: process.env.OPENAI_API_KEY,
 })
 
 export interface DIYStep {
@@ -107,7 +111,7 @@ If confidence < 0.7 or the issue is complex/dangerous, set requiresProfessional 
       }
 
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4-turbo',
+        model: 'gpt-4o',
         messages,
         response_format: { type: 'json_object' },
         temperature: 0.7,
@@ -116,34 +120,10 @@ If confidence < 0.7 or the issue is complex/dangerous, set requiresProfessional 
       const responseContent = completion.choices[0].message.content || '{}'
       const parsedResponse = JSON.parse(responseContent)
 
-      // Create conversation in database
-      const conversation = await prisma.conversation.create({
-        data: {
-          jobRequest: {
-            connect: { id: parsedResponse.jobRequestId },
-          },
-          resolved: false,
-        },
-      })
-
-      // Store messages
-      await prisma.chatMessage.createMany({
-        data: [
-          {
-            conversationId: conversation.id,
-            role: 'user',
-            content: description,
-          },
-          {
-            conversationId: conversation.id,
-            role: 'assistant',
-            content: responseContent,
-          },
-        ],
-      })
-
+      // Return the diagnostic response without saving to database for now
+      // (conversation will be created when user continues chatting)
       return {
-        conversationId: conversation.id,
+        conversationId: '', // Will be created if user continues chat
         diagnosis: parsedResponse.diagnosis || 'Unable to diagnose',
         diySteps: parsedResponse.diySteps || [],
         confidence: parsedResponse.confidence || 0,
@@ -203,7 +183,7 @@ If confidence < 0.7 or the issue is complex/dangerous, set requiresProfessional 
       ]
 
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4-turbo',
+        model: 'gpt-4o',
         messages,
         temperature: 0.7,
       })

@@ -22,7 +22,26 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async (token: string) => {
     try {
-      // Fetch jobs
+      // First, validate the token and get user info
+      const userResponse = await fetch('/api/auth/me', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!userResponse.ok) {
+        throw new Error('Failed to fetch user data')
+      }
+
+      const userData = await userResponse.json()
+      
+      // Redirect service providers to their dashboard
+      if (userData.user.role === 'service_provider') {
+        router.push('/provider/dashboard')
+        return
+      }
+
+      // Fetch jobs for homeowners
       const response = await fetch('/api/jobs', {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -74,10 +93,10 @@ export default function DashboardPage() {
             </div>
             <div className="flex gap-4 items-center">
               <Link
-                href="/jobs/new"
+                href="/problems/new"
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
-                New Job Request
+                Get Help with a Problem
               </Link>
               <button
                 onClick={handleLogout}
@@ -93,49 +112,56 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-2">Manage your job requests and services</p>
+          <p className="text-gray-600 mt-2">Your home repair problems and solutions</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Total Jobs</h3>
+            <h3 className="text-sm font-medium text-gray-500">Total Problems</h3>
             <p className="text-3xl font-bold text-gray-900 mt-2">{jobs.length}</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Active Jobs</h3>
+            <h3 className="text-sm font-medium text-gray-500">Solved with AI</h3>
             <p className="text-3xl font-bold text-gray-900 mt-2">
-              {jobs.filter(j => !['completed', 'cancelled'].includes(j.status)).length}
+              {jobs.filter(j => j.status === 'resolved_diy').length}
             </p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Completed</h3>
+            <h3 className="text-sm font-medium text-gray-500">Professional Help</h3>
             <p className="text-3xl font-bold text-gray-900 mt-2">
-              {jobs.filter(j => j.status === 'completed').length}
+              {jobs.filter(j => ['pending_match', 'matched', 'accepted', 'in_progress', 'completed'].includes(j.status)).length}
             </p>
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Recent Job Requests</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Your Home Problems</h2>
           </div>
           <div className="divide-y divide-gray-200">
             {jobs.length === 0 ? (
               <div className="px-6 py-12 text-center">
-                <p className="text-gray-500">No job requests yet</p>
+                <p className="text-gray-500">No problems reported yet</p>
                 <Link
-                  href="/jobs/new"
+                  href="/problems/new"
                   className="mt-4 inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
-                  Create Your First Job Request
+                  Describe Your Problem
                 </Link>
               </div>
             ) : (
               jobs.map(job => (
                 <div key={job.id} className="px-6 py-4 hover:bg-gray-50">
                   <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{job.category}</h3>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-medium text-gray-900">{job.category}</h3>
+                        {job.status === 'pending_match' && (
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded font-medium">
+                            3 Quotes Received
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600 mt-1">
                         {job.description.substring(0, 100)}...
                       </p>
@@ -145,22 +171,30 @@ export default function DashboardPage() {
                         </span>
                         <span
                           className={`text-xs px-2 py-1 rounded ${
-                            job.status === 'completed'
+                            job.status === 'resolved_diy'
+                              ? 'bg-green-100 text-green-800'
+                              : job.status === 'completed'
                               ? 'bg-green-100 text-green-800'
                               : job.status === 'cancelled'
                               ? 'bg-red-100 text-red-800'
+                              : job.status === 'ai_diagnosis'
+                              ? 'bg-purple-100 text-purple-800'
                               : 'bg-blue-100 text-blue-800'
                           }`}
                         >
-                          {job.status}
+                          {job.status === 'resolved_diy' ? 'Solved with AI' : 
+                           job.status === 'ai_diagnosis' ? 'AI Diagnosing' :
+                           job.status === 'pending_match' ? 'Review Quotes' :
+                           job.status === 'matched' ? 'Professional Found' :
+                           job.status}
                         </span>
                       </div>
                     </div>
                     <Link
-                      href={`/jobs/${job.id}`}
-                      className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                      href={job.status === 'pending_match' ? `/problems/${job.id}/professionals` : `/jobs/${job.id}`}
+                      className="ml-4 text-blue-600 hover:text-blue-700 text-sm font-medium whitespace-nowrap"
                     >
-                      View Details →
+                      {job.status === 'pending_match' ? 'View Quotes →' : 'View Details →'}
                     </Link>
                   </div>
                 </div>

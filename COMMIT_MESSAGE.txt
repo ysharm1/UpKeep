@@ -1,0 +1,36 @@
+Finalize launch strategy: PM-first with homeowner overflow
+
+Strategic Changes:
+- Add GTM strategy (property managers as primary wedge)
+- Add decision framework (based on PM network access)
+- Property managers = 4x revenue, predictable volume, defensible moat
+- Homeowners = tap into existing liquidity (Phase 2)
+
+Product Changes:
+- Update payment flow (capture diagnostic after visit, not at completion)
+- Add admin tools spec (operations dashboard + manual overrides)
+- Add provider reliability tracking fields
+- Enhanced admin capabilities (reassign, retry, refund)
+
+Documentation:
+- SHIP_IT.md: No BS launch plan (8 endpoints, 2 days)
+- GTM_STRATEGY.md: Property manager first strategy
+- DECISION_FRAMEWORK.md: Which customer first decision tree
+- PRODUCT_WEAKNESSES.md: Honest assessment of 3 critical weaknesses
+- OPERATIONS_PLAYBOOK.md: Week 1 manual operations guide
+- EXECUTE.md: Final execution checklist
+
+Key Principles:
+- Ship core product first (works for both PMs and homeowners)
+- Test with real users (don't build features before users)
+- Add only what's requested (no premature optimization)
+- One clean engine, multiple user types (no forking)
+- Minimal branching logic (same flow for everyone)
+
+Timeline:
+- Day 1-2: Build 8 endpoints + admin tools
+- Day 3-4: Deploy to production
+- Week 2: Onboard first users (PM or homeowner)
+- Week 3-4: Add features ONLY if requested
+
+Ready to ship in 2 days. No scope expansion.

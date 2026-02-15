@@ -1,8 +1,7 @@
-import { PrismaClient, UserRole, User } from '@prisma/client'
+import { UserRole, User } from '@prisma/client'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
-
-const prisma = new PrismaClient()
+import { prisma } from '../prisma'
 
 const SALT_ROUNDS = 12
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key'

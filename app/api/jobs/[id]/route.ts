@@ -7,52 +7,33 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const jobRequest = await jobService.getJobRequest(params.id)
-
-    if (!jobRequest) {
-      return NextResponse.json({ error: 'Job request not found' }, { status: 404 })
-    }
-
-    return NextResponse.json({ jobRequest })
-  } catch (error: any) {
-    console.error('Get job error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Failed to get job request' },
-      { status: 400 }
-    )
-  }
-}
-
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const token = authHeader.substring(7)
-    await authService.validateSession(token)
+    const user = await authService.validateSession(token)
 
-    const body = await request.json()
-    const { status } = body
+    const jobRequest = await jobService.getJobRequest(params.id)
 
-    if (!status) {
-      return NextResponse.json({ error: 'Missing status field' }, { status: 400 })
+    if (!jobRequest) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 })
     }
 
-    const jobRequest = await jobService.updateJobStatus(params.id, status)
+    // Verify user has access to this job
+    const isHomeowner = jobRequest.homeownerId === user.homeownerProfile?.id
+    const isProvider = jobRequest.serviceProviderId === user.serviceProviderProfile?.id
 
-    return NextResponse.json({
-      message: 'Job status updated successfully',
-      jobRequest,
-    })
+    if (!isHomeowner && !isProvider) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    return NextResponse.json({ jobRequest })
   } catch (error: any) {
-    console.error('Update job status error:', error)
+    console.error('Get job error:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to update job status' },
+      { error: error.message || 'Failed to get job' },
       { status: 400 }
     )
   }

@@ -1,6 +1,5 @@
-import { PrismaClient, JobRequest, JobStatus, ServiceCategory } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { JobRequest, JobStatus, ServiceCategory } from '@prisma/client'
+import { prisma } from '../prisma'
 
 export interface CreateJobRequestData {
   homeownerId: string

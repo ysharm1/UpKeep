@@ -1,8 +1,7 @@
-import { PrismaClient, MediaContext, MediaFile } from '@prisma/client'
+import { MediaContext, MediaFile } from '@prisma/client'
 import { storageService } from './storage.service'
 import { thumbnailService } from './thumbnail.service'
-
-const prisma = new PrismaClient()
+import { prisma } from '../prisma'
 
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png']
 const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/quicktime']

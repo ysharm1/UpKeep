@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole, ServiceCategory, JobStatus } from '@prisma/client'
+import { PrismaClient, UserRole, ServiceCategory } from '@prisma/client'
 import bcrypt from 'bcrypt'
 
 const prisma = new PrismaClient()

@@ -38,8 +38,26 @@ export default function LoginPage() {
       localStorage.setItem('accessToken', data.accessToken)
       localStorage.setItem('refreshToken', data.refreshToken)
 
-      // Redirect to dashboard
-      router.push('/dashboard')
+      // Get user info to determine redirect
+      const userResponse = await fetch('/api/auth/me', {
+        headers: {
+          Authorization: `Bearer ${data.accessToken}`,
+        },
+      })
+
+      if (userResponse.ok) {
+        const userData = await userResponse.json()
+        
+        // Redirect based on role
+        if (userData.user.role === 'service_provider') {
+          router.push('/provider/dashboard')
+        } else {
+          router.push('/dashboard')
+        }
+      } else {
+        // Fallback to regular dashboard
+        router.push('/dashboard')
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {

@@ -1,6 +1,5 @@
-import { PrismaClient, ServiceProviderProfile, ServiceCategory } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { ServiceProviderProfile, ServiceCategory } from '@prisma/client'
+import { prisma } from '../prisma'
 
 export interface ServiceProviderMatch {
   provider: ServiceProviderProfile
