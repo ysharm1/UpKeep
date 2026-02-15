@@ -1,6 +1,12 @@
-import { Resend } from 'resend'
+// Email service - optional, will fallback to console logging if Resend is not available
+let resend: any = null
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+try {
+  const { Resend } = require('resend')
+  resend = new Resend(process.env.RESEND_API_KEY)
+} catch (error) {
+  console.log('[EMAIL] Resend package not installed, emails will be logged to console')
+}
 
 interface EmailParams {
   to: string
@@ -10,8 +16,8 @@ interface EmailParams {
 
 async function sendEmail({ to, subject, html }: EmailParams) {
   try {
-    // In development, just log the email
-    if (process.env.NODE_ENV === 'development' || !process.env.RESEND_API_KEY) {
+    // In development or if Resend is not configured, just log the email
+    if (process.env.NODE_ENV === 'development' || !process.env.RESEND_API_KEY || !resend) {
       console.log('[EMAIL] Would send email:', { to, subject })
       console.log('[EMAIL] Content:', html)
       return { success: true, messageId: 'dev-mode' }
