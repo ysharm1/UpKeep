@@ -21,6 +21,9 @@ export async function GET(request: NextRequest) {
         where: { userId: user.id },
       })
 
+      console.log('Homeowner profile:', profile?.id, 'for user:', user.id)
+      console.log('About to query threads with homeownerId:', profile!.id)
+
       threads = await prisma.messageThread.findMany({
         where: {
           homeownerId: profile!.id,
@@ -51,6 +54,8 @@ export async function GET(request: NextRequest) {
           lastMessageAt: 'desc',
         },
       })
+
+      console.log('Query returned threads:', threads.length)
     } else {
       const profile = await prisma.serviceProviderProfile.findUnique({
         where: { userId: user.id },
@@ -97,8 +102,8 @@ export async function GET(request: NextRequest) {
             senderId: {
               not: user.id,
             },
-            readBy: {
-              not: {
+            NOT: {
+              readBy: {
                 has: user.id,
               },
             },
@@ -111,6 +116,8 @@ export async function GET(request: NextRequest) {
         }
       })
     )
+
+    console.log('Threads for user:', user.id, 'role:', user.role, 'count:', threadsWithUnread.length)
 
     return NextResponse.json({ threads: threadsWithUnread })
   } catch (error: any) {

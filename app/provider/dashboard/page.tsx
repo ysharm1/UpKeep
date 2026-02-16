@@ -35,7 +35,8 @@ export default function ProviderDashboardPage() {
       }
 
       const data = await response.json()
-      setJobs(data.jobs || [])
+      console.log('Provider jobs:', data.jobRequests)
+      setJobs(data.jobRequests || [])
 
       // Fetch available jobs nearby
       const availableResponse = await fetch('/api/jobs/available', {
@@ -78,7 +79,8 @@ export default function ProviderDashboardPage() {
       }
 
       alert('Job claimed successfully! Contact the homeowner to schedule.')
-      fetchDashboardData(token!)
+      // Force full page reload to ensure fresh data
+      window.location.reload()
     } catch (error: any) {
       alert(`Failed to claim job: ${error.message}`)
     } finally {
@@ -145,6 +147,45 @@ export default function ProviderDashboardPage() {
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
     router.push('/')
+  }
+
+  const handleStartConversation = async (jobId: string) => {
+    try {
+      console.log('Starting conversation for job:', jobId)
+      const token = localStorage.getItem('accessToken')
+      
+      if (!token) {
+        alert('Please log in again')
+        router.push('/auth/login')
+        return
+      }
+      
+      console.log('Creating thread...')
+      // Create or get existing thread for this job
+      const response = await fetch('/api/messages/threads', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ jobRequestId: jobId }),
+      })
+
+      console.log('Thread response status:', response.status)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('Thread creation error:', errorData)
+        throw new Error(errorData.error || 'Failed to create conversation')
+      }
+
+      const data = await response.json()
+      console.log('Thread created:', data)
+      router.push(`/messages/${data.thread.id}`)
+    } catch (error: any) {
+      console.error('Start conversation error:', error)
+      alert(`Failed to start conversation: ${error.message}`)
+    }
   }
 
   if (loading) {
@@ -299,7 +340,7 @@ export default function ProviderDashboardPage() {
                       {claimingJob === job.id ? 'Claiming...' : 'Claim Job'}
                     </button>
                     <Link
-                      href={`/jobs/${job.id}`}
+                      href={`/provider/jobs/available/${job.id}`}
                       className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
                     >
                       View Details
@@ -314,59 +355,77 @@ export default function ProviderDashboardPage() {
         {/* Scheduled Diagnostic Visits */}
         <div className="bg-white rounded-lg shadow mb-8">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Scheduled Diagnostic Visits</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Your Jobs</h2>
+            <p className="text-sm text-gray-600 mt-1">Jobs you've claimed and diagnostic visits</p>
           </div>
           <div className="divide-y divide-gray-200">
-            {jobs.filter(j => j.status === 'diagnostic_scheduled').length === 0 ? (
+            {jobs.filter(j => ['matched', 'accepted', 'diagnostic_scheduled'].includes(j.status)).length === 0 ? (
               <div className="px-6 py-12 text-center">
-                <p className="text-gray-500">No scheduled visits</p>
-                <p className="text-sm text-gray-400 mt-2">New bookings will appear here</p>
+                <p className="text-gray-500">No claimed jobs yet</p>
+                <p className="text-sm text-gray-400 mt-2">Claim a job from the available jobs section</p>
               </div>
             ) : (
-              jobs.filter(j => j.status === 'diagnostic_scheduled').map(job => (
+              jobs.filter(j => ['matched', 'accepted', 'diagnostic_scheduled'].includes(j.status)).map(job => (
                 <div key={job.id} className="px-6 py-4 hover:bg-gray-50">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-gray-900">{job.description.substring(0, 50)}...</h3>
-                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">Scheduled</span>
+                        <h3 className="font-medium text-gray-900">{job.category.toUpperCase()}</h3>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          job.status === 'matched' ? 'bg-yellow-100 text-yellow-800' :
+                          job.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {job.status === 'matched' ? 'Claimed - Awaiting Booking' :
+                           job.status === 'accepted' ? 'Booking Confirmed' :
+                           'Scheduled'}
+                        </span>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">
-                        {job.description.substring(0, 100)}...
+                        {job.description.substring(0, 150)}...
                       </p>
                       <div className="flex gap-4 mt-2">
                         <span className="text-xs text-gray-500">
                           📍 {job.location?.city}, {job.location?.state} {job.location?.zipCode}
                         </span>
+                        {job.scheduledDate && (
+                          <span className="text-xs text-gray-500">
+                            🕒 Scheduled: {new Date(job.scheduledDate).toLocaleString()}
+                          </span>
+                        )}
                       </div>
-                      <div className="mt-2">
-                        <span className="text-sm font-medium text-gray-900">
-                          {job.homeowner?.profile?.firstName} {job.homeowner?.profile?.lastName}
-                        </span>
-                        <span className="text-sm text-gray-600"> • {job.homeowner?.profile?.phoneNumber}</span>
-                      </div>
-                    </div>
-                    <div className="text-right ml-4">
-                      <div className="text-lg font-bold text-green-600">
-                        ${job.assignedProvider?.serviceProviderProfile?.diagnosticFee || 0}
-                      </div>
-                      <div className="text-xs text-gray-500">Diagnostic fee</div>
-                      <div className="text-xs text-green-600 mt-1">✓ Authorized</div>
+                      {job.homeowner && (
+                        <div className="mt-2">
+                          <span className="text-sm font-medium text-gray-900">
+                            Homeowner: {job.homeowner.user?.email}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Link
-                      href={`/provider/jobs/${job.id}/diagnostic-report`}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-                    >
-                      Submit Assessment
-                    </Link>
                     <button
-                      onClick={() => handleCaptureDiagnostic(job.id)}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+                      onClick={() => handleStartConversation(job.id)}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
                     >
-                      Capture Diagnostic Payment
+                      Message Homeowner
                     </button>
+                    {job.status === 'diagnostic_scheduled' && (
+                      <>
+                        <Link
+                          href={`/provider/jobs/${job.id}/diagnostic-report`}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                        >
+                          Submit Assessment
+                        </Link>
+                        <button
+                          onClick={() => handleCaptureDiagnostic(job.id)}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+                        >
+                          Capture Diagnostic Payment
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))

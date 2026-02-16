@@ -23,11 +23,29 @@ export async function GET(
     }
 
     // Verify user has access to this job
+    console.log('Authorization check:', {
+      userId: user.id,
+      userRole: user.role,
+      homeownerProfileId: user.homeownerProfile?.id,
+      providerProfileId: user.serviceProviderProfile?.id,
+      jobHomeownerId: jobRequest.homeownerId,
+      jobProviderId: jobRequest.serviceProviderId,
+    })
+
     const isHomeowner = jobRequest.homeownerId === user.homeownerProfile?.id
     const isProvider = jobRequest.serviceProviderId === user.serviceProviderProfile?.id
 
     if (!isHomeowner && !isProvider) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      console.error('Access denied: User does not own this job')
+      return NextResponse.json({ 
+        error: 'Unauthorized - You do not have access to this job',
+        debug: {
+          isHomeowner,
+          isProvider,
+          hasHomeownerProfile: !!user.homeownerProfile,
+          hasProviderProfile: !!user.serviceProviderProfile,
+        }
+      }, { status: 403 })
     }
 
     return NextResponse.json({ jobRequest })

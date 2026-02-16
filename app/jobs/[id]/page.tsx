@@ -101,21 +101,27 @@ export default function JobDetailsPage() {
 
   const fetchJobDetails = async (token: string) => {
     try {
+      console.log('Fetching job details for ID:', jobId)
       const response = await fetch(`/api/jobs/${jobId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
 
+      console.log('Response status:', response.status)
+
       if (!response.ok) {
-        throw new Error('Failed to fetch job details')
+        const errorData = await response.json()
+        console.error('Error response:', errorData)
+        throw new Error(errorData.error || 'Failed to fetch job details')
       }
 
       const data = await response.json()
+      console.log('Job data received:', data)
       setJob(data.jobRequest)
     } catch (error) {
       console.error('Job details error:', error)
-      alert('Failed to load job details')
+      alert(`Failed to load job details: ${error instanceof Error ? error.message : 'Unknown error'}`)
       router.push('/dashboard')
     } finally {
       setLoading(false)

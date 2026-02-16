@@ -34,8 +34,8 @@ export async function GET(
         senderId: {
           not: user.id,
         },
-        readBy: {
-          not: {
+        NOT: {
+          readBy: {
             has: user.id,
           },
         },

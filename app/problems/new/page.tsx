@@ -25,6 +25,14 @@ export default function NewProblemPage() {
   const [chatMessages, setChatMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([])
   const [followUpQuestion, setFollowUpQuestion] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
+  
+  // Hooks for hire step - must be at top level
+  const [selectedProvider, setSelectedProvider] = useState<any>(null)
+  const [selectedDate, setSelectedDate] = useState('')
+  const [selectedTime, setSelectedTime] = useState('')
+  const [bookingStep, setBookingStep] = useState<'browse' | 'schedule' | 'payment'>('browse')
+  const [providers, setProviders] = useState<any[]>([])
+  const [loadingProviders, setLoadingProviders] = useState(true)
 
   // Fetch user profile and auto-populate address
   useEffect(() => {
@@ -271,13 +279,6 @@ export default function NewProblemPage() {
   }
 
   if (step === 'hire') {
-    const [selectedProvider, setSelectedProvider] = useState<any>(null)
-    const [selectedDate, setSelectedDate] = useState('')
-    const [selectedTime, setSelectedTime] = useState('')
-    const [bookingStep, setBookingStep] = useState<'browse' | 'schedule' | 'payment'>('browse')
-    const [providers, setProviders] = useState<any[]>([])
-    const [loadingProviders, setLoadingProviders] = useState(true)
-
     // Fetch real providers on mount
     useEffect(() => {
       const fetchProviders = async () => {
