@@ -9,8 +9,15 @@ export default function MessagesPage() {
   const [threads, setThreads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<string>('')
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+    
     const token = localStorage.getItem('accessToken')
     if (!token) {
       router.push('/auth/login')
@@ -19,7 +26,7 @@ export default function MessagesPage() {
 
     fetchThreads(token)
     fetchUserRole(token)
-  }, [router])
+  }, [router, mounted])
 
   const fetchUserRole = async (token: string) => {
     try {

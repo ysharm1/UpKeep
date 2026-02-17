@@ -10,8 +10,15 @@ export default function DashboardPage() {
   const [jobs, setJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showArchived, setShowArchived] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+    
     const token = localStorage.getItem('accessToken')
     if (!token) {
       router.push('/auth/login')
@@ -19,7 +26,7 @@ export default function DashboardPage() {
     }
 
     fetchDashboardData(token)
-  }, [])
+  }, [mounted])
 
   const fetchDashboardData = async (token: string) => {
     try {

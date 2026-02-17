@@ -25,6 +25,7 @@ export default function NewProblemPage() {
   const [chatMessages, setChatMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([])
   const [followUpQuestion, setFollowUpQuestion] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
+  const [mounted, setMounted] = useState(false)
   
   // Hooks for hire step - must be at top level
   const [selectedProvider, setSelectedProvider] = useState<any>(null)
@@ -34,8 +35,14 @@ export default function NewProblemPage() {
   const [providers, setProviders] = useState<any[]>([])
   const [loadingProviders, setLoadingProviders] = useState(true)
 
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // Fetch user profile and auto-populate address
   useEffect(() => {
+    if (!mounted) return
+    
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('accessToken')
@@ -73,11 +80,11 @@ export default function NewProblemPage() {
     }
 
     fetchProfile()
-  }, [router])
+  }, [router, mounted])
 
   // Fetch providers when step changes to 'hire'
   useEffect(() => {
-    if (step !== 'hire') return
+    if (!mounted || step !== 'hire') return
 
     const fetchProviders = async () => {
       try {
@@ -106,7 +113,7 @@ export default function NewProblemPage() {
     }
 
     fetchProviders()
-  }, [step, problem.category, problem.location])
+  }, [step, problem.category, problem.location, mounted])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
