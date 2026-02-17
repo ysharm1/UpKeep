@@ -9,6 +9,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [jobs, setJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [showArchived, setShowArchived] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
@@ -54,15 +55,30 @@ export default function DashboardPage() {
 
       const data = await response.json()
       setJobs(data.jobRequests || [])
+      
+      // Debug: Show job statuses
+      const jobStatuses = data.jobRequests?.map((j: any) => `${j.status} (hasProvider: ${!!j.serviceProviderId})`).join(', ')
+      console.log('=== HOMEOWNER DASHBOARD JOBS ===')
+      console.log('Total jobs:', data.jobRequests?.length)
+      console.log('Job statuses:', jobStatuses)
+      console.log('Full jobs data:', data.jobRequests)
+      console.log('================================')
     } catch (error) {
       console.error('Dashboard error:', error)
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
-      router.push('/auth/login')
     } finally {
       setLoading(false)
     }
   }
+
+  const activeJobs = jobs.filter(job => 
+    job.status !== 'completed' && job.status !== 'cancelled' && job.status !== 'resolved_diy'
+  )
+  
+  const archivedJobs = jobs.filter(job => 
+    job.status === 'completed' || job.status === 'cancelled' || job.status === 'resolved_diy'
+  )
+
+  const displayedJobs = showArchived ? archivedJobs : activeJobs
 
   const handleLogout = () => {
     localStorage.removeItem('accessToken')
@@ -142,21 +158,49 @@ export default function DashboardPage() {
 
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Your Home Problems</h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-900">Your Home Problems</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowArchived(false)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg ${
+                    !showArchived
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Active ({activeJobs.length})
+                </button>
+                <button
+                  onClick={() => setShowArchived(true)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg ${
+                    showArchived
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Past ({archivedJobs.length})
+                </button>
+              </div>
+            </div>
           </div>
           <div className="divide-y divide-gray-200">
-            {jobs.length === 0 ? (
+            {displayedJobs.length === 0 ? (
               <div className="px-6 py-12 text-center">
-                <p className="text-gray-500">No problems reported yet</p>
-                <Link
-                  href="/problems/new"
-                  className="mt-4 inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Describe Your Problem
-                </Link>
+                <p className="text-gray-500">
+                  {showArchived ? 'No past problems' : 'No active problems'}
+                </p>
+                {!showArchived && (
+                  <Link
+                    href="/problems/new"
+                    className="mt-4 inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Describe Your Problem
+                  </Link>
+                )}
               </div>
             ) : (
-              jobs.map(job => (
+              displayedJobs.map(job => (
                 <div key={job.id} className="px-6 py-4 hover:bg-gray-50">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -196,12 +240,28 @@ export default function DashboardPage() {
                         </span>
                       </div>
                     </div>
-                    <Link
-                      href={job.status === 'pending_match' ? `/problems/${job.id}/professionals` : `/jobs/${job.id}`}
-                      className="ml-4 text-blue-600 hover:text-blue-700 text-sm font-medium whitespace-nowrap"
-                    >
-                      {job.status === 'pending_match' ? 'View Quotes →' : 'View Details →'}
-                    </Link>
+                    {(() => {
+                      console.log(`Job ${job.id} status: "${job.status}" (type: ${typeof job.status})`)
+                      if (job.status === 'matched') {
+                        return (
+                          <Link
+                            href={`/jobs/${job.id}/pay-diagnostic`}
+                            className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium whitespace-nowrap"
+                          >
+                            Pay for Diagnostic ($85)
+                          </Link>
+                        )
+                      } else {
+                        return (
+                          <Link
+                            href={job.status === 'pending_match' ? `/problems/${job.id}/professionals` : `/jobs/${job.id}`}
+                            className="ml-4 text-blue-600 hover:text-blue-700 text-sm font-medium whitespace-nowrap"
+                          >
+                            {job.status === 'pending_match' ? 'View Quotes →' : 'View Details →'}
+                          </Link>
+                        )
+                      }
+                    })()}
                   </div>
                 </div>
               ))

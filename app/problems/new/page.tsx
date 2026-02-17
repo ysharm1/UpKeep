@@ -75,6 +75,39 @@ export default function NewProblemPage() {
     fetchProfile()
   }, [router])
 
+  // Fetch providers when step changes to 'hire'
+  useEffect(() => {
+    if (step !== 'hire') return
+
+    const fetchProviders = async () => {
+      try {
+        const token = localStorage.getItem('accessToken')
+        const response = await fetch('/api/providers/nearby', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            category: problem.category,
+            location: problem.location,
+          }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setProviders(data.providers || [])
+        }
+      } catch (error) {
+        console.error('Failed to fetch providers:', error)
+      } finally {
+        setLoadingProviders(false)
+      }
+    }
+
+    fetchProviders()
+  }, [step, problem.category, problem.location])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -279,37 +312,6 @@ export default function NewProblemPage() {
   }
 
   if (step === 'hire') {
-    // Fetch real providers on mount
-    useEffect(() => {
-      const fetchProviders = async () => {
-        try {
-          const token = localStorage.getItem('accessToken')
-          const response = await fetch('/api/providers/nearby', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              category: problem.category,
-              location: problem.location,
-            }),
-          })
-
-          if (response.ok) {
-            const data = await response.json()
-            setProviders(data.providers || [])
-          }
-        } catch (error) {
-          console.error('Failed to fetch providers:', error)
-        } finally {
-          setLoadingProviders(false)
-        }
-      }
-
-      fetchProviders()
-    }, [])
-
     const handleScheduleConsult = (provider: any) => {
       setSelectedProvider(provider)
       setBookingStep('schedule')

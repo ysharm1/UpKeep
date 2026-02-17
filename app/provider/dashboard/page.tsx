@@ -410,22 +410,79 @@ export default function ProviderDashboardPage() {
                     >
                       Message Homeowner
                     </button>
-                    {job.status === 'diagnostic_scheduled' && (
-                      <>
-                        <Link
-                          href={`/provider/jobs/${job.id}/diagnostic-report`}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-                        >
-                          Submit Assessment
-                        </Link>
-                        <button
-                          onClick={() => handleCaptureDiagnostic(job.id)}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
-                        >
-                          Capture Diagnostic Payment
-                        </button>
-                      </>
+                    {job.status === 'accepted' && (
+                      <Link
+                        href={`/provider/jobs/${job.id}/schedule`}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                      >
+                        Schedule Diagnostic
+                      </Link>
                     )}
+                    {job.status === 'diagnostic_scheduled' && (
+                      <Link
+                        href={`/provider/jobs/${job.id}/diagnostic-report`}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                      >
+                        Submit Assessment
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Diagnostic Completed - Need Repair Quote */}
+        <div className="bg-white rounded-lg shadow mb-8">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900">Awaiting Repair Quote</h2>
+            <p className="text-sm text-gray-600 mt-1">Diagnostics completed - submit repair quotes</p>
+          </div>
+          <div className="divide-y divide-gray-200">
+            {jobs.filter(j => ['diagnostic_completed', 'repair_pending_approval'].includes(j.status)).length === 0 ? (
+              <div className="px-6 py-12 text-center">
+                <p className="text-gray-500">No jobs awaiting quotes</p>
+              </div>
+            ) : (
+              jobs.filter(j => ['diagnostic_completed', 'repair_pending_approval'].includes(j.status)).map(job => (
+                <div key={job.id} className="px-6 py-4 hover:bg-gray-50">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-medium text-gray-900">{job.category.toUpperCase()}</h3>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          job.status === 'diagnostic_completed' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {job.status === 'diagnostic_completed' ? 'Need Quote' : 'Quote Pending Approval'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {job.description.substring(0, 150)}...
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {job.status === 'diagnostic_completed' && (
+                      <Link
+                        href={`/provider/jobs/${job.id}/repair-quote`}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                      >
+                        Submit Repair Quote
+                      </Link>
+                    )}
+                    {job.status === 'repair_pending_approval' && (
+                      <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium">
+                        Waiting for homeowner approval
+                      </span>
+                    )}
+                    <button
+                      onClick={() => handleStartConversation(job.id)}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+                    >
+                      Message Homeowner
+                    </button>
                   </div>
                 </div>
               ))

@@ -3,19 +3,16 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import StripePaymentForm from '@/app/components/StripePaymentForm'
 
 export default function ApproveRepairPage() {
   const router = useRouter()
   const params = useParams()
   const jobId = params.id as string
-  
-  const [loading, setLoading] = useState(true)
-  const [approving, setApproving] = useState(false)
-  const [declining, setDeclining] = useState(false)
-  const [showPaymentForm, setShowPaymentForm] = useState(false)
-  const [job, setJob] = useState<any>(null)
+
   const [quote, setQuote] = useState<any>(null)
+  const [job, setJob] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [processing, setProcessing] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
@@ -24,91 +21,65 @@ export default function ApproveRepairPage() {
       return
     }
 
-    fetchJobAndQuote(token)
+    fetchRepairQuote(token)
   }, [jobId])
 
-  const fetchJobAndQuote = async (token: string) => {
+  const fetchRepairQuote = async (token: string) => {
     try {
-      // Fetch job details
-      const jobResponse = await fetch(`/api/jobs/${jobId}`, {
+      const response = await fetch(`/api/jobs/${jobId}/repair-quote`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
 
-      if (!jobResponse.ok) {
-        throw new Error('Failed to fetch job')
+      if (!response.ok) {
+        throw new Error('Failed to fetch repair quote')
       }
 
-      const jobData = await jobResponse.json()
-      setJob(jobData.jobRequest)
-
-      // Fetch repair quote
-      const quoteResponse = await fetch(`/api/jobs/${jobId}/repair-quote`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (quoteResponse.ok) {
-        const quoteData = await quoteResponse.json()
-        setQuote(quoteData.quote)
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error)
-      alert('Failed to load repair quote')
+      const data = await response.json()
+      setQuote(data.repairQuote)
+      setJob(data.jobRequest)
+    } catch (error: any) {
+      console.error('Fetch quote error:', error)
+      alert(error.message || 'Failed to load repair quote')
       router.push('/dashboard')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleApprove = async (paymentMethodId: string) => {
-    setApproving(true)
+  const handleApproval = async (approved: boolean) => {
+    if (!approved) {
+      if (!confirm('Are you sure you want to decline this quote?')) {
+        return
+      }
+    }
+
+    setProcessing(true)
     try {
       const token = localStorage.getItem('accessToken')
+
       const response = await fetch(`/api/jobs/${jobId}/approve-repair`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          paymentMethodId
-        })
+        body: JSON.stringify({ approved }),
       })
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to approve')
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to process approval')
       }
 
-      alert('Repair quote approved! Payment authorized. The provider will complete the work.')
-      router.push(`/jobs/${jobId}`)
+      alert(approved ? 'Quote approved! Provider will begin work.' : 'Quote declined.')
+      router.push('/dashboard')
     } catch (error: any) {
-      alert(`Approval failed: ${error.message}`)
-      throw error
+      console.error('Approval error:', error)
+      alert(error.message || 'Failed to process approval')
     } finally {
-      setApproving(false)
-    }
-  }
-
-  const handlePaymentError = (errorMessage: string) => {
-    alert(`Payment failed: ${errorMessage}`)
-  }
-
-  const handleDecline = async () => {
-    prompt('Please provide a reason for declining (optional):')
-    
-    setDeclining(true)
-    try {
-      // TODO: Implement decline endpoint
-      alert('Quote declined. The provider has been notified.')
-      router.push(`/jobs/${jobId}`)
-    } catch (error: any) {
-      alert(`Decline failed: ${error.message}`)
-    } finally {
-      setDeclining(false)
+      setProcessing(false)
     }
   }
 
@@ -117,27 +88,11 @@ export default function ApproveRepairPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading repair quote...</p>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     )
   }
-
-  if (!job || !quote) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">Repair quote not found</p>
-          <Link href="/dashboard" className="mt-4 inline-block text-blue-600 hover:text-blue-700">
-            Back to Dashboard
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  const diagnosticFee = job.assignedProvider?.serviceProviderProfile?.diagnosticFee || 0
-  const totalCost = diagnosticFee + quote.totalAmount
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -150,10 +105,10 @@ export default function ApproveRepairPage() {
               </Link>
             </div>
             <Link
-              href={`/jobs/${jobId}`}
+              href="/dashboard"
               className="px-4 py-2 text-gray-700 hover:text-gray-900"
             >
-              ← Back to Job Details
+              ← Back to Dashboard
             </Link>
           </div>
         </div>
@@ -161,117 +116,92 @@ export default function ApproveRepairPage() {
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Review Repair Quote</h1>
-          <p className="text-gray-600 mb-6">
-            {job.assignedProvider?.serviceProviderProfile?.businessName} has provided a quote for your repair.
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Review Repair Quote</h1>
+          <p className="text-gray-600 mb-8">
+            Review and approve or decline the repair quote from your provider
           </p>
 
-          {/* Job Summary */}
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-gray-900 mb-2">Job Details</h3>
-            <p className="text-sm text-gray-600 mb-1">
-              <strong>Category:</strong> {job.category}
-            </p>
-            <p className="text-sm text-gray-600">
-              <strong>Description:</strong> {job.description}
-            </p>
-          </div>
-
-          {/* Quote Breakdown */}
-          <div className="border-2 border-blue-200 rounded-lg p-6 mb-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Quote Breakdown</h3>
-            
-            <div className="space-y-3 mb-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Labor Cost</span>
-                <span className="font-semibold text-gray-900">${quote.laborCost.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Parts Cost</span>
-                <span className="font-semibold text-gray-900">${quote.partsCost.toFixed(2)}</span>
-              </div>
-              <div className="border-t pt-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700">Repair Subtotal</span>
-                  <span className="font-semibold text-gray-900">${quote.totalAmount.toFixed(2)}</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Diagnostic Fee</span>
-                <span className="font-semibold text-gray-900">${diagnosticFee.toFixed(2)}</span>
-              </div>
-              <div className="border-t-2 border-gray-300 pt-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold text-gray-900">Total Cost</span>
-                  <span className="text-2xl font-bold text-blue-600">${totalCost.toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-
-            {quote.notes && (
-              <div className="bg-blue-50 border border-blue-200 rounded p-3 mt-4">
-                <p className="text-sm font-medium text-blue-900 mb-1">Provider Notes:</p>
-                <p className="text-sm text-blue-800">{quote.notes}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Payment Info */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <h4 className="font-semibold text-yellow-900 mb-2">💳 Payment Information</h4>
-            <ul className="text-sm text-yellow-800 space-y-1">
-              <li>• Diagnostic fee (${diagnosticFee}) was already authorized</li>
-              <li>• Repair cost (${quote.totalAmount.toFixed(2)}) will be authorized now</li>
-              <li>• Both payments will be captured after work is completed</li>
-              <li>• You can cancel before work begins for a full refund</li>
-            </ul>
-          </div>
-
-          {/* Action Buttons */}
-          {!showPaymentForm ? (
-            <div className="flex gap-4">
-              <button
-                onClick={() => setShowPaymentForm(true)}
-                disabled={approving || declining}
-                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold disabled:opacity-50 transition-colors"
-              >
-                Approve & Authorize Payment
-              </button>
-              <button
-                onClick={handleDecline}
-                disabled={approving || declining}
-                className="flex-1 px-6 py-3 border-2 border-red-600 text-red-600 rounded-lg hover:bg-red-50 font-semibold disabled:opacity-50 transition-colors"
-              >
-                {declining ? 'Declining...' : 'Decline Quote'}
-              </button>
-            </div>
-          ) : (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Information</h3>
-              <StripePaymentForm
-                amount={quote.totalAmount}
-                onSuccess={handleApprove}
-                onError={handlePaymentError}
-                buttonText={approving ? 'Approving...' : `Approve & Authorize $${quote.totalAmount.toFixed(2)}`}
-              />
-              <button
-                onClick={() => setShowPaymentForm(false)}
-                disabled={approving}
-                className="mt-4 text-sm text-gray-600 hover:text-gray-900"
-              >
-                ← Back
-              </button>
+          {job && (
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <h2 className="font-semibold text-gray-900 mb-2">Job Details</h2>
+              <p className="text-sm text-gray-600 capitalize">{job.category} Service</p>
+              <p className="text-sm text-gray-600 mt-1">{job.description}</p>
             </div>
           )}
 
-          <div className="mt-6 text-center">
-            <Link
-              href={`/jobs/${jobId}`}
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              ← Back to Job Details
-            </Link>
-          </div>
+          {quote && (
+            <div className="space-y-6">
+              <div className="border rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Cost Breakdown</h3>
+                
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Labor Cost</span>
+                    <span className="font-medium text-gray-900">
+                      ${parseFloat(quote.laborCost).toFixed(2)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Parts Cost</span>
+                    <span className="font-medium text-gray-900">
+                      ${parseFloat(quote.partsCost).toFixed(2)}
+                    </span>
+                  </div>
+                  
+                  <div className="pt-3 border-t flex justify-between">
+                    <span className="text-lg font-semibold text-gray-900">Total</span>
+                    <span className="text-2xl font-bold text-gray-900">
+                      ${parseFloat(quote.totalAmount).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {quote.notes && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Additional Notes</h3>
+                  <p className="text-gray-700 whitespace-pre-wrap">{quote.notes}</p>
+                </div>
+              )}
+
+              {quote.provider && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-gray-600">
+                    Quote provided by <span className="font-medium">{quote.provider.businessName}</span>
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Submitted on {new Date(quote.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+
+              <div className="pt-6 border-t">
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => handleApproval(true)}
+                    disabled={processing}
+                    className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:bg-gray-400"
+                  >
+                    {processing ? 'Processing...' : 'Approve Quote'}
+                  </button>
+                  <button
+                    onClick={() => handleApproval(false)}
+                    disabled={processing}
+                    className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:bg-gray-400"
+                  >
+                    {processing ? 'Processing...' : 'Decline Quote'}
+                  </button>
+                </div>
+                <Link
+                  href="/dashboard"
+                  className="mt-4 block text-center px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                >
+                  Back to Dashboard
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>

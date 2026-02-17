@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
       })
 
       console.log('Homeowner profile:', profile?.id, 'for user:', user.id)
-      console.log('About to query threads with homeownerId:', profile!.id)
 
       threads = await prisma.messageThread.findMany({
         where: {
@@ -55,7 +54,7 @@ export async function GET(request: NextRequest) {
         },
       })
 
-      console.log('Query returned threads:', threads.length)
+      console.log('Threads for user:', user.id, 'role:', user.role, 'count:', threads.length)
     } else {
       const profile = await prisma.serviceProviderProfile.findUnique({
         where: { userId: user.id },

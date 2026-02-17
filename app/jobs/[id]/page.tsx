@@ -88,6 +88,7 @@ export default function JobDetailsPage() {
 
   const [job, setJob] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [completing, setCompleting] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
@@ -125,6 +126,35 @@ export default function JobDetailsPage() {
       router.push('/dashboard')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleMarkComplete = async () => {
+    if (!confirm('Are you sure you want to mark this job as complete?')) {
+      return
+    }
+
+    setCompleting(true)
+    try {
+      const token = localStorage.getItem('accessToken')
+      const response = await fetch(`/api/jobs/${jobId}/complete`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to mark job as complete')
+      }
+
+      alert('Job marked as complete!')
+      router.push('/dashboard')
+    } catch (error) {
+      console.error('Complete job error:', error)
+      alert('Failed to mark job as complete')
+    } finally {
+      setCompleting(false)
     }
   }
 
@@ -263,6 +293,17 @@ export default function JobDetailsPage() {
                 >
                   Review Repair Quote
                 </Link>
+              )}
+
+              {/* Mark as Complete */}
+              {['diagnostic_scheduled', 'diagnostic_completed', 'repair_approved', 'in_progress'].includes(job.status) && (
+                <button
+                  onClick={handleMarkComplete}
+                  disabled={completing}
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {completing ? 'Marking Complete...' : 'Mark as Complete'}
+                </button>
               )}
 
               {/* Find Professionals */}

@@ -1,214 +1,151 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-import { verifyToken } from '@/lib/auth/auth.middleware'
+import { authService } from '@/lib/auth/auth.service'
+import { prisma } from '@/lib/prisma'
 
-const prisma = new PrismaClient()
+// GET - Fetch repair quote
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
+    const token = authHeader.substring(7)
+    const user = await authService.validateSession(token)
+
+    // Get job request with repair quote
+    const jobRequest = await prisma.jobRequest.findUnique({
+      where: { id: params.id },
+      include: {
+        repairQuote: {
+          include: {
+            provider: true,
+          },
+        },
+        homeowner: true,
+        serviceProvider: true,
+      },
+    })
+
+    if (!jobRequest) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+    }
+
+    // Verify user is homeowner or provider
+    const isHomeowner = jobRequest.homeowner.userId === user.id
+    const isProvider = jobRequest.serviceProvider?.userId === user.id
+
+    if (!isHomeowner && !isProvider) {
+      return NextResponse.json({ error: 'Not authorized for this job' }, { status: 403 })
+    }
+
+    if (!jobRequest.repairQuote) {
+      return NextResponse.json({ error: 'Repair quote not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({
+      repairQuote: jobRequest.repairQuote,
+      jobRequest: {
+        id: jobRequest.id,
+        category: jobRequest.category,
+        description: jobRequest.description,
+        status: jobRequest.status,
+      },
+    })
+  } catch (error: any) {
+    console.error('Get repair quote error:', error)
+    return NextResponse.json(
+      { error: error.message || 'Failed to fetch repair quote' },
+      { status: 500 }
+    )
+  }
+}
+
+// POST - Submit repair quote
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Authenticate user
     const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: { message: 'Authentication required', code: 'AUTH_REQUIRED' } },
-        { status: 401 }
-      )
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const decoded = verifyToken(token)
-    
-    if (!decoded) {
-      return NextResponse.json(
-        { error: { message: 'Invalid token', code: 'AUTH_REQUIRED' } },
-        { status: 401 }
-      )
+    const token = authHeader.substring(7)
+    const user = await authService.validateSession(token)
+
+    const { laborCost, partsCost, notes } = await request.json()
+
+    if (laborCost === undefined || partsCost === undefined) {
+      return NextResponse.json({ error: 'Labor cost and parts cost are required' }, { status: 400 })
     }
 
     // Get job request
-    const job = await prisma.jobRequest.findUnique({
+    const jobRequest = await prisma.jobRequest.findUnique({
       where: { id: params.id },
       include: {
-        serviceProvider: {
-          include: {
-            user: true
-          }
-        }
-      }
+        serviceProvider: true,
+      },
     })
 
-    if (!job) {
-      return NextResponse.json(
-        { error: { message: 'Job not found', code: 'NOT_FOUND' } },
-        { status: 404 }
-      )
+    if (!jobRequest) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 })
     }
 
     // Verify user is the assigned provider
-    if (!job.serviceProvider || job.serviceProvider.userId !== decoded.userId) {
-      return NextResponse.json(
-        { error: { message: 'Not authorized to submit quote for this job', code: 'FORBIDDEN' } },
-        { status: 403 }
-      )
+    if (!jobRequest.serviceProvider || jobRequest.serviceProvider.userId !== user.id) {
+      return NextResponse.json({ error: 'Not authorized for this job' }, { status: 403 })
     }
 
-    // Parse request body
-    const body = await request.json()
-    const { laborCost, partsCost, notes } = body
-
-    // Validate costs
-    if (typeof laborCost !== 'number' || typeof partsCost !== 'number') {
-      return NextResponse.json(
-        { error: { message: 'Labor cost and parts cost must be numbers', code: 'VALIDATION_ERROR' } },
-        { status: 400 }
-      )
+    // Verify job is in correct status
+    if (jobRequest.status !== 'diagnostic_completed') {
+      return NextResponse.json({ error: 'Job must be in diagnostic_completed status' }, { status: 400 })
     }
 
-    if (laborCost < 0 || partsCost < 0) {
-      return NextResponse.json(
-        { error: { message: 'Costs cannot be negative', code: 'VALIDATION_ERROR' } },
-        { status: 400 }
-      )
-    }
+    const totalAmount = parseFloat(laborCost) + parseFloat(partsCost)
 
-    const totalAmount = laborCost + partsCost
-
-    if (totalAmount === 0) {
-      return NextResponse.json(
-        { error: { message: 'Total amount must be greater than zero', code: 'VALIDATION_ERROR' } },
-        { status: 400 }
-      )
-    }
-
-    // Check if quote already exists
-    const existingQuote = await prisma.repairQuote.findUnique({
-      where: { jobRequestId: params.id }
-    })
-
-    if (existingQuote) {
-      return NextResponse.json(
-        { error: { message: 'Repair quote already exists for this job', code: 'VALIDATION_ERROR' } },
-        { status: 400 }
-      )
-    }
-
-    // Create repair quote
-    const quote = await prisma.repairQuote.create({
-      data: {
+    // Create or update repair quote
+    const repairQuote = await prisma.repairQuote.upsert({
+      where: { jobRequestId: params.id },
+      create: {
         jobRequestId: params.id,
-        providerId: job.serviceProviderId!,
+        providerId: jobRequest.serviceProviderId!,
         laborCost,
         partsCost,
         totalAmount,
         notes: notes || null,
-        status: 'PENDING'
-      }
+        status: 'PENDING',
+      },
+      update: {
+        laborCost,
+        partsCost,
+        totalAmount,
+        notes: notes || null,
+        status: 'PENDING',
+      },
     })
 
     // Update job status
     await prisma.jobRequest.update({
       where: { id: params.id },
       data: {
-        status: 'repair_pending_approval'
-      }
-    })
-
-    console.log('[REPAIR_QUOTE_CREATED]', {
-      jobId: params.id,
-      quoteId: quote.id,
-      totalAmount
+        status: 'repair_pending_approval',
+      },
     })
 
     return NextResponse.json({
-      success: true,
-      quote
+      message: 'Repair quote submitted successfully',
+      repairQuote,
     })
-
-  } catch (error) {
-    console.error('[REPAIR_QUOTE_ERROR]', error)
+  } catch (error: any) {
+    console.error('Submit repair quote error:', error)
     return NextResponse.json(
-      { error: { message: 'Failed to create repair quote', code: 'SERVER_ERROR' } },
-      { status: 500 }
-    )
-  }
-}
-
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    // Authenticate user
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: { message: 'Authentication required', code: 'AUTH_REQUIRED' } },
-        { status: 401 }
-      )
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    const decoded = verifyToken(token)
-    
-    if (!decoded) {
-      return NextResponse.json(
-        { error: { message: 'Invalid token', code: 'AUTH_REQUIRED' } },
-        { status: 401 }
-      )
-    }
-
-    // Get job request
-    const job = await prisma.jobRequest.findUnique({
-      where: { id: params.id },
-      include: {
-        homeowner: {
-          include: {
-            user: true
-          }
-        },
-        serviceProvider: {
-          include: {
-            user: true
-          }
-        }
-      }
-    })
-
-    if (!job) {
-      return NextResponse.json(
-        { error: { message: 'Job not found', code: 'NOT_FOUND' } },
-        { status: 404 }
-      )
-    }
-
-    // Verify user is homeowner or assigned provider
-    const isHomeowner = job.homeowner.userId === decoded.userId
-    const isProvider = job.serviceProvider?.userId === decoded.userId
-
-    if (!isHomeowner && !isProvider) {
-      return NextResponse.json(
-        { error: { message: 'Not authorized to view this quote', code: 'FORBIDDEN' } },
-        { status: 403 }
-      )
-    }
-
-    // Get repair quote
-    const quote = await prisma.repairQuote.findUnique({
-      where: { jobRequestId: params.id }
-    })
-
-    return NextResponse.json({
-      quote
-    })
-
-  } catch (error) {
-    console.error('[GET_REPAIR_QUOTE_ERROR]', error)
-    return NextResponse.json(
-      { error: { message: 'Failed to fetch repair quote', code: 'SERVER_ERROR' } },
+      { error: error.message || 'Failed to submit repair quote' },
       { status: 500 }
     )
   }

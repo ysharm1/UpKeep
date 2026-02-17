@@ -4,19 +4,16 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function SubmitDiagnosticReportPage() {
+export default function ScheduleDiagnosticPage() {
   const router = useRouter()
   const params = useParams()
   const jobId = params.id as string
 
   const [job, setJob] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  
-  const [summary, setSummary] = useState('')
-  const [recommendation, setRecommendation] = useState('REPAIR')
-  const [severity, setSeverity] = useState('MEDIUM')
-  const [estimatedCost, setEstimatedCost] = useState('')
+  const [scheduling, setScheduling] = useState(false)
+  const [scheduledDate, setScheduledDate] = useState('')
+  const [scheduledTime, setScheduledTime] = useState('')
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
@@ -51,45 +48,42 @@ export default function SubmitDiagnosticReportPage() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSchedule = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!summary.trim()) {
-      alert('Please provide a summary')
+    if (!scheduledDate || !scheduledTime) {
+      alert('Please select both date and time')
       return
     }
 
-    setSubmitting(true)
+    setScheduling(true)
     try {
       const token = localStorage.getItem('accessToken')
+      const dateTime = `${scheduledDate}T${scheduledTime}:00`
 
-      const response = await fetch(`/api/jobs/${jobId}/diagnostic-report`, {
+      const response = await fetch(`/api/jobs/${jobId}/schedule-diagnostic`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          summary,
-          recommendation,
-          severity,
-          estimatedCost: estimatedCost || null,
-          photoUrls: [],
+          scheduledDate: dateTime,
         }),
       })
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to submit report')
+        throw new Error(error.error || 'Failed to schedule')
       }
 
-      alert('Diagnostic report submitted successfully!')
+      alert('Diagnostic scheduled successfully!')
       router.push('/provider/dashboard')
     } catch (error: any) {
-      console.error('Submit error:', error)
-      alert(error.message || 'Failed to submit diagnostic report')
+      console.error('Schedule error:', error)
+      alert(error.message || 'Failed to schedule diagnostic')
     } finally {
-      setSubmitting(false)
+      setScheduling(false)
     }
   }
 
@@ -124,11 +118,11 @@ export default function SubmitDiagnosticReportPage() {
         </div>
       </nav>
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Submit Diagnostic Report</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Schedule Diagnostic Visit</h1>
           <p className="text-gray-600 mb-8">
-            Provide your professional assessment of the issue
+            Choose a date and time for the diagnostic visit
           </p>
 
           {job && (
@@ -136,66 +130,38 @@ export default function SubmitDiagnosticReportPage() {
               <h2 className="font-semibold text-gray-900 mb-2">Job Details</h2>
               <p className="text-sm text-gray-600 capitalize">{job.category} Service</p>
               <p className="text-sm text-gray-600 mt-1">{job.description}</p>
+              {job.location && (
+                <p className="text-sm text-gray-600 mt-2">
+                  Location: {job.location.city}, {job.location.state}
+                </p>
+              )}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSchedule} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Diagnostic Summary *
+                Date
               </label>
-              <textarea
-                value={summary}
-                onChange={(e) => setSummary(e.target.value)}
-                rows={6}
+              <input
+                type="date"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
                 required
-                placeholder="Describe what you found during the diagnostic visit..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Recommendation *
-              </label>
-              <select
-                value={recommendation}
-                onChange={(e) => setRecommendation(e.target.value)}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="REPAIR">Repair</option>
-                <option value="REPLACE">Replace</option>
-                <option value="MONITOR">Monitor</option>
-                <option value="NO_ACTION_NEEDED">No Action Needed</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Severity
-              </label>
-              <select
-                value={severity}
-                onChange={(e) => setSeverity(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="CRITICAL">Critical</option>
-                <option value="HIGH">High</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="LOW">Low</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Estimated Cost Range (Optional)
+                Time
               </label>
               <input
-                type="text"
-                value={estimatedCost}
-                onChange={(e) => setEstimatedCost(e.target.value)}
-                placeholder="e.g., $500-$1,000"
+                type="time"
+                value={scheduledTime}
+                onChange={(e) => setScheduledTime(e.target.value)}
+                required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -203,10 +169,10 @@ export default function SubmitDiagnosticReportPage() {
             <div className="flex gap-4">
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={scheduling}
                 className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-400"
               >
-                {submitting ? 'Submitting...' : 'Submit Report'}
+                {scheduling ? 'Scheduling...' : 'Schedule Diagnostic'}
               </button>
               <Link
                 href="/provider/dashboard"

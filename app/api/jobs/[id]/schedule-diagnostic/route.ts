@@ -16,11 +16,17 @@ export async function POST(
     const token = authHeader.substring(7)
     const user = await authService.validateSession(token)
 
+    const { scheduledDate } = await request.json()
+
+    if (!scheduledDate) {
+      return NextResponse.json({ error: 'Scheduled date is required' }, { status: 400 })
+    }
+
     // Get job request
     const jobRequest = await prisma.jobRequest.findUnique({
       where: { id: params.id },
       include: {
-        homeowner: true,
+        serviceProvider: true,
       },
     })
 
@@ -28,27 +34,33 @@ export async function POST(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 })
     }
 
-    // Verify homeowner owns this job
-    if (jobRequest.homeowner.userId !== user.id) {
+    // Verify user is the assigned provider
+    if (!jobRequest.serviceProvider || jobRequest.serviceProvider.userId !== user.id) {
       return NextResponse.json({ error: 'Not authorized for this job' }, { status: 403 })
     }
 
-    // Update job status to completed
+    // Verify job is in correct status (accepted - payment received)
+    if (jobRequest.status !== 'accepted') {
+      return NextResponse.json({ error: 'Job must be in accepted status to schedule' }, { status: 400 })
+    }
+
+    // Update job with scheduled date and change status
     const updatedJob = await prisma.jobRequest.update({
       where: { id: params.id },
       data: {
-        status: 'completed',
+        scheduledDate: new Date(scheduledDate),
+        status: 'diagnostic_scheduled',
       },
     })
 
     return NextResponse.json({
-      message: 'Job marked as completed',
+      message: 'Diagnostic scheduled successfully',
       jobRequest: updatedJob,
     })
   } catch (error: any) {
-    console.error('Complete job error:', error)
+    console.error('Schedule diagnostic error:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to complete job' },
+      { error: error.message || 'Failed to schedule diagnostic' },
       { status: 500 }
     )
   }

@@ -2,6 +2,11 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { authService } from '@/lib/auth/auth.service'
 import { prisma } from '@/lib/prisma'
+import Stripe from 'stripe'
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-12-18.acacia',
+})
 
 export async function POST(
   request: NextRequest,
@@ -16,18 +21,13 @@ export async function POST(
     const token = authHeader.substring(7)
     const user = await authService.validateSession(token)
 
-    const { approved } = await request.json()
-
-    if (approved === undefined) {
-      return NextResponse.json({ error: 'Approval status is required' }, { status: 400 })
-    }
+    const { paymentIntentId } = await request.json()
 
     // Get job request
     const jobRequest = await prisma.jobRequest.findUnique({
       where: { id: params.id },
       include: {
         homeowner: true,
-        repairQuote: true,
       },
     })
 
@@ -40,40 +40,40 @@ export async function POST(
       return NextResponse.json({ error: 'Not authorized for this job' }, { status: 403 })
     }
 
-    // Verify job is in correct status
-    if (jobRequest.status !== 'repair_pending_approval') {
-      return NextResponse.json({ error: 'Job must be in repair_pending_approval status' }, { status: 400 })
+    // Verify payment intent
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+
+    if (paymentIntent.status !== 'succeeded') {
+      return NextResponse.json({ error: 'Payment not completed' }, { status: 400 })
     }
 
-    if (!jobRequest.repairQuote) {
-      return NextResponse.json({ error: 'No repair quote found' }, { status: 404 })
-    }
-
-    // Update repair quote status
-    await prisma.repairQuote.update({
-      where: { id: jobRequest.repairQuote.id },
-      data: {
-        status: approved ? 'APPROVED' : 'DECLINED',
-      },
-    })
-
-    // Update job status
-    const newStatus = approved ? 'repair_approved' : 'diagnostic_completed'
+    // Update job status to accepted (payment received)
     await prisma.jobRequest.update({
       where: { id: params.id },
       data: {
-        status: newStatus,
+        status: 'accepted',
+      },
+    })
+
+    // Update payment record
+    await prisma.payment.update({
+      where: {
+        stripePaymentIntentId: paymentIntentId,
+      },
+      data: {
+        status: 'captured',
+        capturedAt: new Date(),
       },
     })
 
     return NextResponse.json({
-      message: approved ? 'Repair quote approved' : 'Repair quote declined',
-      status: newStatus,
+      message: 'Payment confirmed successfully',
+      status: 'accepted',
     })
   } catch (error: any) {
-    console.error('Approve repair error:', error)
+    console.error('Confirm diagnostic payment error:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to process approval' },
+      { error: error.message || 'Failed to confirm payment' },
       { status: 500 }
     )
   }
