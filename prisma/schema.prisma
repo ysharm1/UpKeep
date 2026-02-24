@@ -39,6 +39,13 @@ enum JobStatus {
   cancelled
 }
 
+enum LeadStatus {
+  available
+  viewed
+  accepted
+  expired
+}
+
 enum PaymentStatus {
   pending
   authorized
@@ -76,17 +83,17 @@ enum MediaContext {
 
 // User and Authentication
 model User {
-  id                      String                   @id @default(uuid())
-  email                   String                   @unique
-  passwordHash            String
-  role                    UserRole
-  emailVerified           Boolean                  @default(false)
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
-  
-  homeownerProfile        HomeownerProfile?
-  serviceProviderProfile  ServiceProviderProfile?
-  refreshTokens           RefreshToken[]
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  role          UserRole
+  emailVerified Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  homeownerProfile       HomeownerProfile?
+  serviceProviderProfile ServiceProviderProfile?
+  refreshTokens          RefreshToken[]
 }
 
 model RefreshToken {
@@ -96,24 +103,24 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
-  
+
   @@index([userId])
 }
 
 model HomeownerProfile {
-  id            String       @id @default(uuid())
-  userId        String       @unique
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   firstName     String
   lastName      String
   phoneNumber   String
   addressId     String?
-  address       Address?     @relation(fields: [addressId], references: [id])
-  averageRating Float        @default(0)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  
-  jobRequests   JobRequest[]
+  address       Address? @relation(fields: [addressId], references: [id])
+  averageRating Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  jobRequests JobRequest[]
 }
 
 model ServiceProviderProfile {
@@ -136,40 +143,49 @@ model ServiceProviderProfile {
   reliabilityScore  Decimal?          @db.Decimal(5, 2)
   isActive          Boolean           @default(true)
   lastActiveAt      DateTime          @default(now())
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  
-  serviceArea       ServiceArea?
-  jobRequests       JobRequest[]
-  repairQuotes      RepairQuote[]
+
+  // Lead generation fields
+  stripeCustomerId   String? @unique
+  totalLeadsViewed   Int     @default(0)
+  totalLeadsAccepted Int     @default(0)
+  totalSpent         Int     @default(0) // in cents
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serviceArea     ServiceArea?
+  jobRequests     JobRequest[]
+  repairQuotes    RepairQuote[]
+  leadViews       LeadView[]
+  leadAcceptances LeadAcceptance[]
 }
 
 model ServiceArea {
-  id                    String                 @id @default(uuid())
-  serviceProviderId     String                 @unique
-  serviceProvider       ServiceProviderProfile @relation(fields: [serviceProviderId], references: [id], onDelete: Cascade)
-  centerLocationId      String?
-  centerLocation        Address?               @relation(fields: [centerLocationId], references: [id])
-  radiusMiles           Float?
-  zipCodes              String[]
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
+  id                String                 @id @default(uuid())
+  serviceProviderId String                 @unique
+  serviceProvider   ServiceProviderProfile @relation(fields: [serviceProviderId], references: [id], onDelete: Cascade)
+  centerLocationId  String?
+  centerLocation    Address?               @relation(fields: [centerLocationId], references: [id])
+  radiusMiles       Float?
+  zipCodes          String[]
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
 }
 
 model Address {
-  id                    String                   @id @default(uuid())
-  street                String
-  city                  String
-  state                 String
-  zipCode               String
-  latitude              Float
-  longitude             Float
-  createdAt             DateTime                 @default(now())
-  updatedAt             DateTime                 @updatedAt
-  
-  homeownerProfiles     HomeownerProfile[]
-  jobRequests           JobRequest[]
-  serviceAreas          ServiceArea[]
+  id        String   @id @default(uuid())
+  street    String
+  city      String
+  state     String
+  zipCode   String
+  latitude  Float
+  longitude Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  homeownerProfiles HomeownerProfile[]
+  jobRequests       JobRequest[]
+  serviceAreas      ServiceArea[]
 }
 
 // Job Management
@@ -188,76 +204,87 @@ model JobRequest {
   scheduledDate             DateTime?
   diagnosticPaymentIntentId String?
   repairPaymentIntentId     String?
-  createdAt                 DateTime                @default(now())
-  updatedAt                 DateTime                @updatedAt
-  
-  mediaFiles                MediaFile[]
-  conversation              Conversation?
-  messageThread             MessageThread?
-  ratings                   Rating[]
-  payment                   Payment?
-  repairQuote               RepairQuote?
-  diagnosticReport          DiagnosticReport?
-  
+
+  // Lead generation fields
+  leadStatus LeadStatus @default(available)
+  acceptedBy String?
+  acceptedAt DateTime?
+  viewCount  Int        @default(0)
+  expiresAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mediaFiles       MediaFile[]
+  conversation     Conversation?
+  messageThread    MessageThread?
+  ratings          Rating[]
+  payment          Payment?
+  repairQuote      RepairQuote?
+  diagnosticReport DiagnosticReport?
+  leadViews        LeadView[]
+  leadAcceptance   LeadAcceptance?
+
   @@index([homeownerId])
   @@index([serviceProviderId])
   @@index([status])
   @@index([category])
+  @@index([leadStatus])
   @@index([createdAt])
 }
 
 model DiagnosticReport {
-  id                String                     @id @default(uuid())
-  jobRequestId      String                     @unique
-  jobRequest        JobRequest                 @relation(fields: [jobRequestId], references: [id], onDelete: Cascade)
-  providerId        String
-  summary           String                     @db.Text
-  recommendation    DiagnosticRecommendation
-  severity          DiagnosticSeverity?
-  estimatedCost     String?
-  photoUrls         String[]
-  createdAt         DateTime                   @default(now())
-  updatedAt         DateTime                   @updatedAt
-  
+  id             String                   @id @default(uuid())
+  jobRequestId   String                   @unique
+  jobRequest     JobRequest               @relation(fields: [jobRequestId], references: [id], onDelete: Cascade)
+  providerId     String
+  summary        String                   @db.Text
+  recommendation DiagnosticRecommendation
+  severity       DiagnosticSeverity?
+  estimatedCost  String?
+  photoUrls      String[]
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
   @@index([jobRequestId])
   @@index([providerId])
 }
 
 // AI Chatbot
 model Conversation {
-  id           String        @id @default(uuid())
-  jobRequestId String        @unique
-  jobRequest   JobRequest    @relation(fields: [jobRequestId], references: [id], onDelete: Cascade)
-  resolved     Boolean       @default(false)
-  createdAt    DateTime      @default(now())
-  
-  messages     ChatMessage[]
+  id           String     @id @default(uuid())
+  jobRequestId String     @unique
+  jobRequest   JobRequest @relation(fields: [jobRequestId], references: [id], onDelete: Cascade)
+  resolved     Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+
+  messages ChatMessage[]
 }
 
 model ChatMessage {
   id             String       @id @default(uuid())
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  role           String       // 'user' | 'assistant'
+  role           String // 'user' | 'assistant'
   content        String       @db.Text
   timestamp      DateTime     @default(now())
-  
+
   @@index([conversationId])
 }
 
 // Messaging
 model MessageThread {
-  id                String       @id @default(uuid())
-  jobRequestId      String       @unique
-  jobRequest        JobRequest   @relation(fields: [jobRequestId], references: [id], onDelete: Cascade)
+  id                String     @id @default(uuid())
+  jobRequestId      String     @unique
+  jobRequest        JobRequest @relation(fields: [jobRequestId], references: [id], onDelete: Cascade)
   homeownerId       String
   serviceProviderId String
-  archived          Boolean      @default(false)
-  createdAt         DateTime     @default(now())
-  lastMessageAt     DateTime     @updatedAt
-  
-  messages          Message[]
-  
+  archived          Boolean    @default(false)
+  createdAt         DateTime   @default(now())
+  lastMessageAt     DateTime   @updatedAt
+
+  messages Message[]
+
   @@index([homeownerId])
   @@index([serviceProviderId])
 }
@@ -271,7 +298,7 @@ model Message {
   mediaUrl  String?
   readBy    String[]
   timestamp DateTime      @default(now())
-  
+
   @@index([threadId])
   @@index([timestamp])
 }
@@ -283,11 +310,11 @@ model Rating {
   job        JobRequest @relation(fields: [jobId], references: [id], onDelete: Cascade)
   reviewerId String
   revieweeId String
-  score      Int        // 1-5
+  score      Int // 1-5
   review     String?    @db.Text
   flagged    Boolean    @default(false)
   createdAt  DateTime   @default(now())
-  
+
   @@unique([jobId, reviewerId])
   @@index([revieweeId])
 }
@@ -306,25 +333,25 @@ model RepairQuote {
   status       QuoteStatus            @default(PENDING)
   createdAt    DateTime               @default(now())
   updatedAt    DateTime               @updatedAt
-  
+
   @@index([jobRequestId])
   @@index([providerId])
 }
 
 // Payments
 model Payment {
-  id                     String        @id @default(uuid())
-  jobId                  String        @unique
-  job                    JobRequest    @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  stripePaymentIntentId  String        @unique
-  amount                 Float
-  platformFee            Float
-  providerAmount         Float
-  status                 PaymentStatus @default(pending)
-  authorizedAt           DateTime?
-  capturedAt             DateTime?
-  createdAt              DateTime      @default(now())
-  
+  id                    String        @id @default(uuid())
+  jobId                 String        @unique
+  job                   JobRequest    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  stripePaymentIntentId String        @unique
+  amount                Float
+  platformFee           Float
+  providerAmount        Float
+  status                PaymentStatus @default(pending)
+  authorizedAt          DateTime?
+  capturedAt            DateTime?
+  createdAt             DateTime      @default(now())
+
   @@index([status])
 }
 
@@ -342,7 +369,38 @@ model MediaFile {
   thumbnailUrl String?
   context      MediaContext
   uploadedAt   DateTime     @default(now())
-  
+
   @@index([userId])
   @@index([jobRequestId])
+}
+
+// Lead Generation
+model LeadView {
+  id             String                 @id @default(uuid())
+  jobRequestId   String
+  jobRequest     JobRequest             @relation(fields: [jobRequestId], references: [id], onDelete: Cascade)
+  providerId     String
+  provider       ServiceProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  viewedAt       DateTime               @default(now())
+  stripeChargeId String?
+  amount         Int                    @default(1500) // $15 in cents
+
+  @@unique([jobRequestId, providerId])
+  @@index([jobRequestId])
+  @@index([providerId])
+  @@index([viewedAt])
+}
+
+model LeadAcceptance {
+  id             String                 @id @default(uuid())
+  jobRequestId   String                 @unique
+  jobRequest     JobRequest             @relation(fields: [jobRequestId], references: [id], onDelete: Cascade)
+  providerId     String
+  provider       ServiceProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  acceptedAt     DateTime               @default(now())
+  stripeChargeId String?
+  amount         Int                    @default(5000) // $50 in cents
+
+  @@index([providerId])
+  @@index([acceptedAt])
 }

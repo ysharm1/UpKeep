@@ -1,314 +1,256 @@
-# UpKeep - Home Maintenance Marketplace
+# UpKeep - Lead Generation Platform
 
-Professional home maintenance and repair services with instant booking and transparent pricing.
+A lead generation platform for home repair services. Homeowners submit problems for FREE, and service providers pay to view and accept exclusive leads.
 
-## 🚀 Current Status
+## Business Model
 
-**✅ Backend Implementation Complete**
-- Instant booking flow with Stripe payments
-- Diagnostic fee management
-- Repair quote system
-- Admin operations dashboard
-- Payment capture and refund system
-- Provider management
+**For Homeowners:**
+- Submit home repair problems completely FREE
+- Get AI-powered diagnosis instantly
+- 3 local pros notified about your problem
+- Fast response from competing providers
 
-**✅ Core Features Ready**
-- Homeowner job submission
-- AI-powered problem diagnosis
-- Provider nearby search
-- Instant booking with payment authorization
-- Repair quote approval
-- Job completion with automatic payouts
-- Admin manual intervention tools
+**For Service Providers:**
+- Pay $15 to view each qualified lead
+- Pay $50 to accept lead exclusively
+- Get customer contact info immediately
+- Average job worth $300-500 (4-6x ROI)
 
-**📋 Ready for Testing & Deployment**
+**Revenue Model:**
+- 3 providers × $15 = $45 (view fees)
+- 1 provider × $50 = $50 (acceptance fee)
+- **Total: $95 per lead**
 
-## 🏗️ Tech Stack
+## Tech Stack
 
-- **Frontend**: Next.js 14, React, TailwindCSS
-- **Backend**: Next.js API Routes
-- **Database**: PostgreSQL with Prisma ORM
-- **Payments**: Stripe (authorize + capture flow)
-- **AI**: OpenAI GPT-4
-- **Deployment**: Vercel
-- **Media**: AWS S3 (optional)
+- **Frontend:** Next.js 14, React, TypeScript, Tailwind CSS
+- **Backend:** Next.js API Routes, Prisma ORM
+- **Database:** PostgreSQL (Supabase)
+- **Payments:** Stripe
+- **SMS:** Twilio
+- **AI:** OpenAI GPT-4
+- **Deployment:** Vercel
 
-## 📚 Documentation
-
-- **[QUICK_START.md](./QUICK_START.md)** - Get running in 5 minutes
-- **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** - Complete testing instructions
-- **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** - Production deployment steps
-- **[EXECUTE.md](./EXECUTE.md)** - Launch strategy and execution plan
-- **[SHIP_IT.md](./SHIP_IT.md)** - Product overview and go-to-market
-- **[GTM_STRATEGY.md](./GTM_STRATEGY.md)** - Go-to-market strategy
-- **[OPERATIONS_PLAYBOOK.md](./OPERATIONS_PLAYBOOK.md)** - Daily operations guide
-
-## 🎯 Key Features
-
-### For Homeowners
-- Submit maintenance problems with photos
-- Chat with AI for instant diagnosis
-- Find verified professionals nearby
-- Book diagnostic visits instantly
-- Receive transparent repair quotes
-- Approve quotes with one click
-- Payments captured only after work is done
-
-### For Service Providers
-- Set your own diagnostic fee ($50-$150)
-- Receive instant bookings
-- Submit repair quotes on-site
-- Get paid automatically (85% of total)
-- Track all jobs in one dashboard
-
-### For Admins
-- Daily operations dashboard
-- Manual status changes
-- Force capture payments
-- Issue refunds
-- Reassign jobs
-- Manage provider status
-- Retry failed payments
-
-## 💳 Payment Flow
-
-1. **Booking**: Diagnostic fee authorized (not captured)
-2. **Visit**: Provider completes diagnostic
-3. **Capture Diagnostic**: Provider captures diagnostic payment
-4. **Quote**: Provider submits repair quote
-5. **Approval**: Homeowner approves, repair payment authorized
-6. **Completion**: Provider completes work, repair payment captured
-7. **Payout**: Provider receives 85%, platform keeps 15%
-
-## 🚀 Quick Start
-
-```bash
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your keys
-
-# Set up database
-npx prisma migrate dev
-npx prisma generate
-
-# Start development server
-npm run dev
-```
-
-Visit http://localhost:3000
-
-See [QUICK_START.md](./QUICK_START.md) for detailed instructions.
-
-## 🧪 Testing
-
-Use Stripe test cards:
-- Success: `4242 4242 4242 4242`
-- Declined: `4000 0000 0000 0002`
-
-See [TESTING_GUIDE.md](./TESTING_GUIDE.md) for complete testing flows.
-
-## 📦 Deployment
-
-Deploy to Vercel in minutes:
-
-1. Connect GitHub repository
-2. Add environment variables
-3. Deploy
-4. Run database migrations
-
-See [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for step-by-step instructions.
-
-## 🗂️ Project Structure
+## Project Structure
 
 ```
 ├── app/                    # Next.js app directory
 │   ├── api/               # API routes
-│   │   ├── admin/        # Admin endpoints
-│   │   ├── auth/         # Authentication
-│   │   ├── bookings/     # Instant booking
-│   │   ├── jobs/         # Job management
-│   │   └── providers/    # Provider management
-│   ├── admin/            # Admin dashboard
-│   ├── auth/             # Auth pages
-│   ├── dashboard/        # User dashboard
-│   ├── jobs/             # Job pages
-│   ├── problems/         # Problem submission
-│   └── provider/         # Provider pages
-├── lib/                   # Business logic
-│   ├── auth/             # Auth services
-│   ├── jobs/             # Job services
-│   ├── payments/         # Payment services
-│   └── providers/        # Provider services
-├── prisma/               # Database
-│   ├── schema.prisma     # Database schema
-│   └── migrations/       # Migration history
-└── .kiro/specs/          # Feature specifications
+│   │   ├── leads/         # Lead view/accept APIs
+│   │   └── jobs/          # Job creation API
+│   ├── auth/              # Authentication pages
+│   ├── dashboard/         # Homeowner dashboard
+│   ├── provider/          # Provider dashboard & lead marketplace
+│   ├── problems/          # Problem submission
+│   └── messages/          # Messaging system
+├── lib/                   # Shared utilities
+│   ├── partners.ts        # Partner configuration
+│   ├── stripe.ts          # Stripe payment integration
+│   ├── sms.ts             # Twilio SMS notifications
+│   └── email.ts           # Email notifications (backup)
+├── prisma/                # Database schema
+│   └── schema.prisma      # LeadView, LeadAcceptance tables
+└── .kiro/specs/           # Feature specifications
+    └── lead-generation-platform/
 ```
 
-## 🔑 Environment Variables
+## Key Files
 
-Required:
-- `DATABASE_URL` - PostgreSQL connection string
-- `JWT_SECRET` - JWT signing secret
-- `STRIPE_SECRET_KEY` - Stripe API key
-- `OPENAI_API_KEY` - OpenAI API key
+- `lib/partners.ts` - Configure your service provider partners
+- `lib/stripe.ts` - Stripe payment integration ($15 view, $50 accept)
+- `lib/sms.ts` - Twilio SMS notifications
+- `app/api/leads/[id]/view/route.ts` - Lead view payment API
+- `app/api/leads/[id]/accept/route.ts` - Lead acceptance payment API
+- `app/api/jobs/route.ts` - Lead broadcasting logic
+- `app/provider/leads/page.tsx` - Provider lead marketplace
+- `app/page.tsx` - Homeowner-focused landing page
 
-Optional:
-- `AWS_ACCESS_KEY_ID` - For media uploads
-- `AWS_SECRET_ACCESS_KEY` - For media uploads
-- `SMTP_*` - For email notifications
+## Setup
 
-See `.env.example` for complete list.
+### 1. Install Dependencies
 
-## 📊 Database Schema
+```bash
+npm install
+```
 
-Key models:
-- `User` - Homeowners, providers, admins
-- `HomeownerProfile` - Homeowner details
-- `ServiceProviderProfile` - Provider details with diagnostic fee
-- `JobRequest` - Maintenance jobs
-- `RepairQuote` - Repair quotes from providers
-- `Payment` - Payment records with platform fees
-- `Message` - Chat messages
+### 2. Configure Environment Variables
 
-## 🛠️ API Endpoints
+Copy `.env.example` to `.env` and fill in:
 
-### Authentication
-- `POST /api/auth/register` - Register user
-- `POST /api/auth/login` - Login
-- `POST /api/auth/refresh` - Refresh token
-- `GET /api/auth/me` - Get current user
+```bash
+# Database
+DATABASE_URL="postgresql://..."
 
-### Jobs
-- `GET /api/jobs` - List jobs
-- `GET /api/jobs/[id]` - Get job details
-- `POST /api/jobs/[id]/repair-quote` - Submit repair quote
-- `POST /api/jobs/[id]/approve-repair` - Approve repair quote
-- `POST /api/jobs/[id]/capture-diagnostic` - Capture diagnostic payment
-- `POST /api/jobs/[id]/complete` - Complete job
+# Authentication
+JWT_SECRET="your-secret-key"
+JWT_REFRESH_SECRET="your-refresh-secret"
 
-### Bookings
-- `POST /api/bookings` - Book diagnostic visit
+# Stripe (for provider billing)
+STRIPE_SECRET_KEY="sk_test_..."
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
 
-### Providers
-- `GET /api/providers/nearby` - Find nearby providers
-- `PUT /api/providers/[id]/diagnostic-fee` - Set diagnostic fee
+# Twilio (for SMS notifications)
+TWILIO_ACCOUNT_SID="ACxxxxx..."
+TWILIO_AUTH_TOKEN="xxxxx..."
+TWILIO_PHONE_NUMBER="+1234567890"
 
-### Admin
-- `PUT /api/admin/jobs/[id]/status` - Change job status
-- `POST /api/admin/jobs/[id]/capture` - Force capture payment
-- `POST /api/admin/jobs/[id]/refund` - Issue refund
-- `POST /api/admin/jobs/[id]/force-complete` - Force complete job
-- `POST /api/admin/jobs/[id]/reassign` - Reassign job
-- `POST /api/admin/providers/[id]/toggle-active` - Toggle provider status
-- `POST /api/admin/payments/[id]/retry` - Retry failed payment
+# OpenAI (for AI diagnosis)
+OPENAI_API_KEY="sk-..."
 
-## 🎨 UI Pages
+# App URL
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
 
-### Homeowner
-- `/` - Landing page
-- `/auth/register` - Registration
-- `/auth/login` - Login
-- `/dashboard` - Homeowner dashboard
-- `/problems/new` - Submit problem
-- `/problems/[id]/chat` - AI chat
-- `/problems/[id]/professionals` - Find professionals
-- `/jobs/[id]` - Job details
-- `/jobs/[id]/approve-repair` - Approve repair quote
+### 3. Set Up Database
 
-### Provider
-- `/provider/dashboard` - Provider dashboard
-- `/provider/settings` - Settings (diagnostic fee)
-- `/provider/jobs/[id]/repair-quote` - Submit repair quote
+```bash
+npx prisma migrate deploy
+npx prisma generate
+```
 
-### Admin
-- `/admin` - Admin operations dashboard
+### 4. Configure Partners
 
-## 🔒 Security
+Edit `lib/partners.ts` and add your service provider partners:
 
-- JWT authentication with refresh tokens
-- Role-based access control (Homeowner, Provider, Admin)
-- Stripe payment authorization before capture
-- Input validation on all endpoints
-- SQL injection protection via Prisma
-- XSS protection via React
+```typescript
+export const PARTNERS: Partner[] = [
+  {
+    id: 'partner-1',
+    name: 'ABC HVAC Services',
+    email: 'john@abchvac.com',
+    phone: '+15551234567', // E.164 format
+    categories: ['hvac'],
+    serviceArea: {
+      city: 'Phoenix',
+      state: 'AZ',
+      radius: 25,
+    },
+    active: true,
+    viewFee: 15,
+    acceptFee: 50,
+  },
+  // Add 2 more partners for competition
+]
+```
 
-## 📈 Monitoring
+### 5. Run Development Server
 
-- Vercel Analytics for performance
-- Stripe Dashboard for payments
-- Admin dashboard for operations
-- Error logging in API routes
+```bash
+npm run dev
+```
 
-## 🤝 Contributing
+Open [http://localhost:3000](http://localhost:3000)
 
-This is a private project. For questions or issues, contact the development team.
+## How It Works
 
-## 📄 License
+### 1. Homeowner Flow
+1. Visit site and submit problem (FREE)
+2. Upload photos, describe issue
+3. Get instant AI diagnosis
+4. System broadcasts to 3 matching providers
+5. Wait for providers to contact them
+
+### 2. Provider Flow
+1. Receive SMS: "New HVAC lead in Phoenix - Pay $15 to view"
+2. Click link to see preview (category, location, brief description)
+3. Click "Pay $15 to View" → See full details (name, phone, email, photos)
+4. Click "Accept This Lead - $50" → Get exclusive access
+5. Contact customer directly and complete the job
+
+### 3. Platform Flow
+1. Homeowner submits → Create JobRequest in database
+2. Find 3 providers matching category and location
+3. Send SMS to all 3 providers via Twilio
+4. Provider pays $15 → Charge via Stripe, show full details
+5. Provider pays $50 → Charge via Stripe, mark lead as accepted
+6. Notify other providers that lead was taken
+7. Track revenue: $45 from views + $50 from acceptance = $95
+
+## Revenue Projections
+
+**Month 1 (20 leads):**
+- View fees: 20 × 3 × $15 = $900
+- Accept fees: 20 × $50 = $1,000
+- **Total: $1,900/month**
+
+**Month 3 (50 leads):**
+- View fees: 50 × 3 × $15 = $2,250
+- Accept fees: 50 × $50 = $2,500
+- **Total: $4,750/month**
+
+**Month 6 (100 leads):**
+- View fees: 100 × 3 × $15 = $4,500
+- Accept fees: 100 × $50 = $5,000
+- **Total: $9,500/month**
+
+## Deployment
+
+### Deploy to Vercel
+
+```bash
+vercel --prod
+```
+
+### Configure Production Environment
+
+Set all environment variables in Vercel dashboard:
+- Database URL (production)
+- Stripe live keys
+- Twilio credentials
+- OpenAI API key
+- Production app URL
+
+## Implementation Status
+
+### ✅ Completed Features
+
+- Database schema (LeadView, LeadAcceptance tables)
+- Stripe integration ($15 view, $50 accept)
+- Twilio SMS notifications
+- Lead view API
+- Lead accept API
+- Get leads API (available/viewed/won)
+- Provider lead marketplace UI
+- Provider dashboard with lead stats
+- Job creation with SMS broadcasting
+
+### 📋 Before Launch
+
+- [ ] Run database migration: `npx prisma migrate deploy`
+- [ ] Set up Twilio account and add credentials
+- [ ] Add 3 real service provider partners to `lib/partners.ts`
+- [ ] Create provider accounts for each partner
+- [ ] Test end-to-end flow with Stripe test mode
+- [ ] Switch to Stripe live mode
+- [ ] Deploy to Vercel
+- [ ] Start marketing to homeowners
+
+## Documentation
+
+- `FINAL_STATUS.md` - Complete implementation status and launch guide
+- `LEAD_GENERATION_SETUP.md` - Detailed setup guide
+- `GTM_STRATEGY.md` - Go-to-market strategy
+- `.kiro/specs/lead-generation-platform/` - Feature specifications
+
+## Testing
+
+Use Stripe test cards:
+- Success: `4242 4242 4242 4242`
+- Decline: `4000 0000 0000 0002`
+
+Test flow:
+1. Create homeowner account and submit job
+2. Create 3 provider accounts (use partner emails)
+3. Check SMS notifications (or console logs)
+4. As provider, go to `/provider/leads`
+5. Pay $15 to view lead (test card)
+6. Pay $50 to accept lead (test card)
+7. Verify database records created
+
+## Support
+
+For questions or issues, open an issue on GitHub.
+
+## License
 
 Proprietary - All rights reserved
-
-## 🚦 Roadmap
-
-### Phase 1: MVP (Current)
-- [x] Instant booking flow
-- [x] Payment authorization and capture
-- [x] Repair quote system
-- [x] Admin operations tools
-
-### Phase 2: Beta Launch
-- [ ] Mobile responsive testing
-- [ ] End-to-end testing
-- [ ] Production deployment
-- [ ] First 5-10 providers onboarded
-- [ ] First 10-20 jobs completed
-
-### Phase 3: Growth
-- [ ] Email notifications
-- [ ] SMS notifications
-- [ ] Provider ratings and reviews
-- [ ] Scheduling system
-- [ ] Multi-property management (for PMs)
-- [ ] Recurring maintenance plans
-
-### Phase 4: Scale
-- [ ] Mobile apps (iOS/Android)
-- [ ] Advanced analytics
-- [ ] Automated provider matching
-- [ ] Dynamic pricing
-- [ ] Warranty tracking
-- [ ] Integration with property management software
-
-## 💡 Product Philosophy
-
-- **Lean**: Ship core features first, add only what's requested
-- **Disciplined**: One clean engine, no forking
-- **Staged**: Test with real users before expanding
-- **Focused**: Property managers first, homeowners as overflow
-- **Operational**: Manual intervention tools for beta phase
-
-## 📞 Support
-
-For technical issues:
-- Check documentation in this repo
-- Review error logs in Vercel dashboard
-- Check Stripe dashboard for payment issues
-- Use admin dashboard for manual intervention
-
-## 🎯 Success Metrics
-
-- Booking completion rate
-- Payment capture success rate
-- Provider response time
-- Homeowner satisfaction
-- Platform fee revenue
-- Provider retention
-
----
-
-**Status**: Ready for testing and deployment
-**Last Updated**: February 2026
-**Version**: 1.0.0-beta

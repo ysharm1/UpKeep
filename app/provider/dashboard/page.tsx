@@ -8,6 +8,12 @@ export default function ProviderDashboardPage() {
   const router = useRouter()
   const [jobs, setJobs] = useState<any[]>([])
   const [availableJobs, setAvailableJobs] = useState<any[]>([])
+  const [leadStats, setLeadStats] = useState({
+    availableLeads: 0,
+    viewedLeads: 0,
+    wonLeads: 0,
+    totalSpent: 0,
+  })
   const [loading, setLoading] = useState(true)
   const [claimingJob, setClaimingJob] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -55,6 +61,23 @@ export default function ProviderDashboardPage() {
       if (availableResponse.ok) {
         const availableData = await availableResponse.json()
         setAvailableJobs(availableData.jobs || [])
+      }
+
+      // Fetch lead stats
+      const leadsResponse = await fetch('/api/leads', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (leadsResponse.ok) {
+        const leadsData = await leadsResponse.json()
+        setLeadStats({
+          availableLeads: leadsData.available?.length || 0,
+          viewedLeads: leadsData.viewed?.length || 0,
+          wonLeads: leadsData.won?.length || 0,
+          totalSpent: 0, // Will be calculated from provider profile
+        })
       }
     } catch (error) {
       console.error('Dashboard error:', error)
@@ -218,6 +241,12 @@ export default function ProviderDashboardPage() {
             </div>
             <div className="flex gap-4 items-center">
               <Link
+                href="/provider/leads"
+                className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium"
+              >
+                Lead Marketplace
+              </Link>
+              <Link
                 href="/messages"
                 className="px-4 py-2 text-gray-700 hover:text-gray-900"
               >
@@ -257,20 +286,51 @@ export default function ProviderDashboardPage() {
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Provider Dashboard</h1>
-              <p className="text-gray-600 mt-2">Manage your diagnostic visits and repair jobs</p>
+              <p className="text-gray-600 mt-2">Manage your leads and jobs</p>
             </div>
             <Link
-              href="/provider/jobs/find"
+              href="/provider/leads"
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              Find Jobs
+              View Leads
             </Link>
           </div>
         </div>
 
+        {/* Lead Stats */}
+        <div className="grid md:grid-cols-4 gap-6 mb-8">
+          <Link href="/provider/leads" className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-lg shadow-lg text-white hover:shadow-xl transition-shadow">
+            <h3 className="text-sm font-medium opacity-90">Available Leads</h3>
+            <p className="text-4xl font-bold mt-2">{leadStats.availableLeads}</p>
+            <p className="text-sm opacity-75 mt-1">Pay $15 to view</p>
+          </Link>
+          <Link href="/provider/leads?tab=viewing" className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-lg shadow-lg text-white hover:shadow-xl transition-shadow">
+            <h3 className="text-sm font-medium opacity-90">I'm Viewing</h3>
+            <p className="text-4xl font-bold mt-2">{leadStats.viewedLeads}</p>
+            <p className="text-sm opacity-75 mt-1">Paid $15 each</p>
+          </Link>
+          <Link href="/provider/leads?tab=won" className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-6 rounded-lg shadow-lg text-white hover:shadow-xl transition-shadow">
+            <h3 className="text-sm font-medium opacity-90">Leads Won</h3>
+            <p className="text-4xl font-bold mt-2">{leadStats.wonLeads}</p>
+            <p className="text-sm opacity-75 mt-1">Paid $65 each</p>
+          </Link>
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-lg shadow-lg text-white">
+            <h3 className="text-sm font-medium opacity-90">Win Rate</h3>
+            <p className="text-4xl font-bold mt-2">
+              {leadStats.viewedLeads > 0 
+                ? Math.round((leadStats.wonLeads / leadStats.viewedLeads) * 100) 
+                : 0}%
+            </p>
+            <p className="text-sm opacity-75 mt-1">
+              {leadStats.wonLeads} of {leadStats.viewedLeads} viewed
+            </p>
+          </div>
+        </div>
+
+        {/* Job Stats */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-sm font-medium text-gray-500">Available Jobs</h3>

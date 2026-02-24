@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jobService } from '@/lib/jobs/job.service'
 import { authService } from '@/lib/auth/auth.service'
 import { ServiceCategory } from '@prisma/client'
+import { findPartnersForCategory } from '@/lib/partners'
+import { sendNewLeadNotification } from '@/lib/sms'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +34,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Create the job request
     const jobRequest = await jobService.createJobRequest({
       homeownerId: user.homeownerProfile!.id,
       category: category as ServiceCategory,
@@ -39,9 +43,45 @@ export async function POST(request: NextRequest) {
       mediaFileIds,
     })
 
+    // PAY-TO-PLAY MODEL: Send SMS to ALL partners in this category
+    const partners = findPartnersForCategory(category)
+    
+    if (partners.length > 0) {
+      console.log(`📢 Broadcasting lead to ${partners.length} partners via SMS`)
+      
+      for (const partner of partners) {
+        // Find provider account for this partner
+        const providerProfile = await prisma.serviceProviderProfile.findFirst({
+          where: {
+            user: {
+              email: partner.email,
+            },
+          },
+        })
+
+        if (providerProfile) {
+          // Send SMS notification
+          await sendNewLeadNotification(
+            partner.phone,
+            partner.name,
+            category,
+            location,
+            jobRequest.id
+          )
+
+          console.log(`✅ SMS sent to partner: ${partner.name}`)
+        } else {
+          console.warn(`⚠️ Partner ${partner.name} doesn't have a provider account yet`)
+        }
+      }
+    } else {
+      console.warn(`⚠️ No partners found for category: ${category}`)
+    }
+
     return NextResponse.json({
       message: 'Job request created successfully',
       jobRequest,
+      partnersNotified: partners.length,
     })
   } catch (error: any) {
     console.error('Create job error:', error)
