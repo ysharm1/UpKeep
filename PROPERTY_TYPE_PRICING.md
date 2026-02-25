@@ -1,117 +1,91 @@
-# Property Type & Tiered Pricing
+# Property Type Pricing - Shared Lead Model
 
 ## Overview
+We use a **shared lead model** where multiple vendors can purchase the same lead. This maximizes revenue per homeowner submission while keeping prices competitive for vendors.
 
-The platform now supports three property types with tiered pricing to maximize revenue from commercial and property manager leads.
-
-## Property Types
+## Pricing Structure
 
 ### 1. Residential (Single Home)
 - **Target**: Individual homeowners
-- **View Price**: $15
-- **Accept Price**: $50
-- **Total Revenue**: $95 per lead (3 views + 1 accept)
+- **Price**: $40 per lead
+- **Revenue Potential**: $120-200 per lead (3-5 vendors purchase)
 
 ### 2. Multi-Family / Property Manager
-- **Target**: Property managers, apartment complexes, HOAs
-- **View Price**: $25
-- **Accept Price**: $100
-- **Total Revenue**: $175 per lead (3 views + 1 accept)
-- **Why Higher**: Recurring business, larger budgets, multiple properties
+- **Target**: Apartment complexes, condos, property management companies
+- **Price**: $60 per lead (50% premium)
+- **Revenue Potential**: $180-300 per lead (3-5 vendors purchase)
+- **Why Higher**: Larger properties, recurring business potential, higher budgets
 
-### 3. Commercial Building
+### 3. Commercial
 - **Target**: Office buildings, retail spaces, warehouses
-- **View Price**: $35
-- **Accept Price**: $150
-- **Total Revenue**: $255 per lead (3 views + 1 accept)
-- **Why Higher**: Larger jobs, higher urgency, bigger budgets
+- **Price**: $80 per lead (100% premium)
+- **Revenue Potential**: $240-400 per lead (3-5 vendors purchase)
+- **Why Higher**: Largest jobs, highest urgency, biggest budgets
 
-## Revenue Comparison
+## Pricing Table
 
-| Property Type | View Price | Accept Price | Revenue per Lead |
-|--------------|------------|--------------|------------------|
-| Residential | $15 | $50 | $95 |
-| Multi-Family | $25 | $100 | $175 |
-| Commercial | $35 | $150 | $255 |
+| Property Type | Price per Vendor | Revenue per Lead (3-5 vendors) |
+|--------------|------------------|--------------------------------|
+| Residential | $40 | $120-200 |
+| Multi-Family | $60 | $180-300 |
+| Commercial | $80 | $240-400 |
 
 ## Implementation
 
-### Frontend Changes
-- Added "Property Type" dropdown to problem submission form
-- Options: Residential, Multi-Family/Property Manager, Commercial
-- Appears before "Problem Category" field
+### Database Schema
+```prisma
+model JobRequest {
+  propertyType PropertyType @default(residential)
+  // ... other fields
+}
 
-### Backend Changes
-- Added `propertyType` enum to Prisma schema (residential, commercial, multi_family)
-- Added `propertyType` field to JobRequest model (defaults to residential)
-- Created `lib/pricing.ts` with dynamic pricing configuration
-- Updated Stripe functions to use dynamic pricing based on property type
-- Updated lead view/accept APIs to pass property type to pricing functions
+enum PropertyType {
+  residential
+  multi_family
+  commercial
+}
+```
 
-### Database Migration
-- Schema updated with `npx prisma db push`
-- Existing leads default to "residential"
-- No data loss
+### Pricing Configuration (`lib/pricing.ts`)
+```typescript
+export const LEAD_PRICING: Record<PropertyType, LeadPricing> = {
+  residential: { price: 4000 }, // $40
+  multi_family: { price: 6000 }, // $60
+  commercial: { price: 8000 }, // $80
+}
+```
 
-## Marketing Strategy
-
-### Target Property Managers
-Property managers are the GOLD opportunity:
-- Submit 5-20 leads per month (recurring revenue)
-- Less price-sensitive than homeowners
-- Need vendors in multiple categories
-- Will refer other property managers
-
-**One property manager = $500-2000/month in revenue**
-
-### Google Ads Keywords
-Add these to your campaigns:
-- "property management maintenance"
-- "commercial HVAC repair"
-- "multi-family plumbing service"
-- "apartment building maintenance"
-- "commercial property repair"
-
-### Landing Page Copy
-Update messaging to appeal to property managers:
-- "Fast response for property emergencies"
-- "Licensed pros for commercial properties"
-- "Manage multiple properties? Get instant quotes"
+### Stripe Integration
+- Single payment to unlock full lead details
+- Multiple vendors can purchase the same lead
+- No refunds, no chargebacks
 
 ## Revenue Projections
 
-### Scenario 1: Mixed Customer Base
-- 70% Residential: $95 × 70 = $6,650/month
-- 20% Multi-Family: $175 × 20 = $3,500/month
-- 10% Commercial: $255 × 10 = $2,550/month
-- **Total: $12,700/month from 100 leads**
+### Conservative (3 vendors per lead)
+- 100 residential leads/month: $40 × 3 × 100 = $12,000/month
+- 40 multi-family leads/month: $60 × 3 × 40 = $7,200/month
+- 20 commercial leads/month: $80 × 3 × 20 = $4,800/month
+- **Total: $24,000/month from 160 leads**
 
-### Scenario 2: Property Manager Focus
-- 40% Residential: $95 × 40 = $3,800/month
-- 40% Multi-Family: $175 × 40 = $7,000/month
-- 20% Commercial: $255 × 20 = $5,100/month
-- **Total: $15,900/month from 100 leads**
+### Optimistic (5 vendors per lead)
+- 100 residential leads/month: $40 × 5 × 100 = $20,000/month
+- 40 multi-family leads/month: $60 × 5 × 40 = $12,000/month
+- 20 commercial leads/month: $80 × 5 × 20 = $8,000/month
+- **Total: $40,000/month from 160 leads**
+
+## Competitive Analysis
+
+**HomeAdvisor**: $15-80 per lead (shared)
+**Thumbtack**: $15-65 per lead (shared)
+**Angi**: $20-60 per lead (shared)
+
+Our pricing is competitive and in line with industry standards.
 
 ## Next Steps
 
-1. **Test the Flow**
-   - Submit a residential lead
-   - Submit a commercial lead
-   - Verify pricing is correct in Stripe
-
-2. **Update Marketing**
-   - Add property manager keywords to Google Ads
-   - Create landing page for commercial customers
-   - Update ad copy to mention "residential & commercial"
-
-3. **Track Metrics**
-   - Monitor property type distribution
-   - Track conversion rates by property type
-   - Adjust pricing if needed
-
-## Technical Notes
-
-- Property type is stored in database and passed through entire flow
-- Pricing is centralized in `lib/pricing.ts` for easy updates
-- Stripe metadata includes property type for tracking
-- All existing code remains backward compatible (defaults to residential)
+1. ✅ Update pricing in `lib/pricing.ts`
+2. ✅ Update Stripe integration to use single payment
+3. ✅ Update all UI to reflect new pricing
+4. ✅ Remove "accept" functionality (no longer needed)
+5. ✅ Update documentation

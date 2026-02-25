@@ -107,6 +107,7 @@ export async function GET(request: NextRequest) {
       available: availableLeads.map((lead) => ({
         id: lead.id,
         category: lead.category,
+        propertyType: lead.propertyType,
         location: `${lead.location.city}, ${lead.location.state}`,
         preview: lead.description.substring(0, 100) + '...',
         createdAt: lead.createdAt,
@@ -116,6 +117,7 @@ export async function GET(request: NextRequest) {
       viewed: viewedLeads.map((lead) => ({
         id: lead.id,
         category: lead.category,
+        propertyType: lead.propertyType,
         description: lead.description,
         location: {
           street: lead.location.street,
@@ -136,6 +138,7 @@ export async function GET(request: NextRequest) {
       won: wonLeads.map((lead) => ({
         id: lead.id,
         category: lead.category,
+        propertyType: lead.propertyType,
         location: `${lead.location.city}, ${lead.location.state}`,
         customer: {
           name: `${lead.homeowner.firstName} ${lead.homeowner.lastName}`,
