@@ -107,6 +107,31 @@ export default function LeadsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Navigation */}
+      <nav className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
+            <Link href="/provider/dashboard" className="text-2xl font-bold text-blue-600">
+              UpKeep Pro
+            </Link>
+            <div className="flex gap-4">
+              <Link
+                href="/provider/dashboard"
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/provider/settings"
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+              >
+                Settings
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Lead Marketplace</h1>

@@ -115,20 +115,27 @@ export default function ProviderSettingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Navigation */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center">
-              <Link href="/provider/dashboard" className="text-2xl font-bold text-blue-600">
-                UpKeep Pro
+            <Link href="/provider/dashboard" className="text-2xl font-bold text-blue-600">
+              UpKeep Pro
+            </Link>
+            <div className="flex gap-4">
+              <Link
+                href="/provider/dashboard"
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/provider/leads"
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+              >
+                Lead Marketplace
               </Link>
             </div>
-            <Link
-              href="/provider/dashboard"
-              className="px-4 py-2 text-gray-700 hover:text-gray-900"
-            >
-              ← Back to Dashboard
-            </Link>
           </div>
         </div>
       </nav>
