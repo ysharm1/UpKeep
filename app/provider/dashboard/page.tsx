@@ -247,22 +247,16 @@ export default function ProviderDashboardPage() {
                 Lead Marketplace
               </Link>
               <Link
+                href="/provider/leads"
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+              >
+                Lead Marketplace
+              </Link>
+              <Link
                 href="/messages"
                 className="px-4 py-2 text-gray-700 hover:text-gray-900"
               >
                 Messages
-              </Link>
-              <Link
-                href="/provider/profile"
-                className="px-4 py-2 text-gray-700 hover:text-gray-900"
-              >
-                Profile
-              </Link>
-              <Link
-                href="/provider/jobs/find"
-                className="px-4 py-2 text-gray-700 hover:text-gray-900"
-              >
-                Find Jobs
               </Link>
               <Link
                 href="/provider/settings"

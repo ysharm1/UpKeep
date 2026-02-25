@@ -11,7 +11,6 @@ export default function ProviderSettingsPage() {
   const [error, setError] = useState('')
   const [profileId, setProfileId] = useState('')
   
-  const [diagnosticFee, setDiagnosticFee] = useState('89')
   const [specialties, setSpecialties] = useState<string[]>([])
   const [businessName, setBusinessName] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -40,9 +39,6 @@ export default function ProviderSettingsPage() {
           if (data.user?.serviceProviderProfile) {
             const profile = data.user.serviceProviderProfile
             setProfileId(profile.id)
-            if (profile.diagnosticFee) {
-              setDiagnosticFee(profile.diagnosticFee.toString())
-            }
             if (profile.specialties) {
               setSpecialties(profile.specialties)
             }
@@ -78,13 +74,6 @@ export default function ProviderSettingsPage() {
       return
     }
 
-    const fee = parseFloat(diagnosticFee)
-    if (fee < 50 || fee > 150) {
-      setError('Diagnostic fee must be between $50 and $150')
-      setLoading(false)
-      return
-    }
-
     try {
       const response = await fetch(`/api/providers/${profileId}`, {
         method: 'PUT',
@@ -93,7 +82,6 @@ export default function ProviderSettingsPage() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
-          diagnosticFee: fee,
           specialties,
           businessName,
           phoneNumber,
@@ -111,7 +99,7 @@ export default function ProviderSettingsPage() {
       }
     } catch (err) {
       setError('Network error. Please try again.')
-      console.error('Failed to update diagnostic fee:', err)
+      console.error('Failed to update profile:', err)
     } finally {
       setLoading(false)
     }
@@ -203,7 +191,7 @@ export default function ProviderSettingsPage() {
             <div className="border-b pb-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Specialties</h2>
               <p className="text-sm text-gray-600 mb-4">
-                Select all services you provide. You'll see jobs matching these categories.
+                Select all services you provide. You'll see leads matching these categories.
               </p>
               
               <div className="grid grid-cols-2 gap-3">
@@ -237,31 +225,6 @@ export default function ProviderSettingsPage() {
                   </button>
                 ))}
               </div>
-            </div>
-
-            {/* Diagnostic Fee */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Diagnostic Visit Fee</h2>
-              <p className="text-sm text-gray-600 mb-4">
-                Set your fee for diagnostic visits. This is what homeowners pay to book you for an inspection.
-              </p>
-
-              <div className="relative">
-                <span className="absolute left-3 top-3 text-gray-500 text-lg">$</span>
-                <input
-                  type="number"
-                  step="1"
-                  min="0"
-                  required
-                  value={diagnosticFee}
-                  onChange={(e) => setDiagnosticFee(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="89"
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Typical range: $50-150 depending on your market and expertise
-              </p>
             </div>
 
             <div className="border-t pt-6">
