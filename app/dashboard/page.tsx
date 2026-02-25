@@ -249,25 +249,14 @@ export default function DashboardPage() {
                     </div>
                     {(() => {
                       console.log(`Job ${job.id} status: "${job.status}" (type: ${typeof job.status})`)
-                      if (job.status === 'matched') {
-                        return (
-                          <Link
-                            href={`/jobs/${job.id}/pay-diagnostic`}
-                            className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium whitespace-nowrap"
+                      return (
+                        <Link
+                          href={`/jobs/${job.id}`}
+                          className="ml-4 text-blue-600 hover:text-blue-700 text-sm font-medium whitespace-nowrap"
                           >
-                            Pay for Diagnostic ($85)
+                            View Details →
                           </Link>
                         )
-                      } else {
-                        return (
-                          <Link
-                            href={job.status === 'pending_match' ? `/problems/${job.id}/professionals` : `/jobs/${job.id}`}
-                            className="ml-4 text-blue-600 hover:text-blue-700 text-sm font-medium whitespace-nowrap"
-                          >
-                            {job.status === 'pending_match' ? 'View Quotes →' : 'View Details →'}
-                          </Link>
-                        )
-                      }
                     })()}
                   </div>
                 </div>

@@ -212,10 +212,10 @@ export default function ProblemChatPage() {
                 ✓ Problem Solved
               </button>
               <Link
-                href={`/problems/${problemId}/professionals`}
+                href="/problems/new"
                 className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium inline-block"
               >
-                → Find Professional
+                → Submit Another Problem
               </Link>
             </div>
           </div>

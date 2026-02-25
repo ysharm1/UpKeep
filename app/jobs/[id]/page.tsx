@@ -246,7 +246,7 @@ export default function JobDetailsPage() {
               </li>
               <li className="flex gap-2">
                 <span>4.</span>
-                <span>Schedule the work directly with your chosen pro</span>
+                <span>Work directly with your chosen pro to get it fixed</span>
               </li>
             </ul>
           </div>
