@@ -135,9 +135,9 @@ export default function ProviderSettingsPage() {
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Provider Profile Settings</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Provider Settings</h1>
           <p className="text-gray-600 mb-6">
-            Manage your business information, specialties, and pricing.
+            Manage your business information and service specialties.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -234,7 +234,7 @@ export default function ProviderSettingsPage() {
                   disabled={loading}
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50"
                 >
-                  {loading ? 'Saving...' : 'Save Profile Settings'}
+                  {loading ? 'Saving...' : 'Save Settings'}
                 </button>
                 <Link
                   href="/provider/dashboard"
@@ -244,7 +244,7 @@ export default function ProviderSettingsPage() {
                 </Link>
               </div>
               {saved && (
-                <p className="text-green-600 text-sm mt-2">✓ Profile settings saved successfully!</p>
+                <p className="text-green-600 text-sm mt-2">✓ Settings saved successfully!</p>
               )}
               {error && (
                 <p className="text-red-600 text-sm mt-2">✗ {error}</p>
