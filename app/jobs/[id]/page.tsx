@@ -4,83 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
-// Progress bar component
-function JobProgressBar({ status }: { status: string }) {
-  const steps = [
-    { key: 'submitted', label: 'Submitted', icon: '📝' },
-    { key: 'diagnostic_scheduled', label: 'Provider Assigned', icon: '👷' },
-    { key: 'diagnostic_completed', label: 'Assessment', icon: '🔍' },
-    { key: 'repair_pending_approval', label: 'Quote', icon: '💰' },
-    { key: 'completed', label: 'Complete', icon: '✅' },
-  ]
-
-  const statusOrder = [
-    'submitted',
-    'pending_match',
-    'matched',
-    'diagnostic_scheduled',
-    'diagnostic_completed',
-    'repair_pending_approval',
-    'repair_approved',
-    'in_progress',
-    'completed',
-  ]
-
-  const currentIndex = statusOrder.indexOf(status)
-
-  const getStepStatus = (stepKey: string) => {
-    const stepIndex = statusOrder.indexOf(stepKey)
-    if (stepIndex <= currentIndex) return 'complete'
-    if (stepIndex === currentIndex + 1) return 'current'
-    return 'upcoming'
-  }
-
-  return (
-    <div className="mb-8">
-      <div className="flex items-center justify-between">
-        {steps.map((step, index) => {
-          const stepStatus = getStepStatus(step.key)
-          return (
-            <div key={step.key} className="flex-1 flex items-center">
-              <div className="flex flex-col items-center flex-1">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${
-                    stepStatus === 'complete'
-                      ? 'bg-green-500 text-white'
-                      : stepStatus === 'current'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 text-gray-400'
-                  }`}
-                >
-                  {stepStatus === 'complete' ? '✓' : step.icon}
-                </div>
-                <span
-                  className={`text-xs mt-2 text-center ${
-                    stepStatus === 'complete' || stepStatus === 'current'
-                      ? 'text-gray-900 font-medium'
-                      : 'text-gray-400'
-                  }`}
-                >
-                  {step.label}
-                </span>
-              </div>
-              {index < steps.length - 1 && (
-                <div
-                  className={`h-1 flex-1 mx-2 ${
-                    getStepStatus(steps[index + 1].key) === 'complete'
-                      ? 'bg-green-500'
-                      : 'bg-gray-200'
-                  }`}
-                />
-              )}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
 export default function JobDetailsPage() {
   const router = useRouter()
   const params = useParams()
@@ -88,7 +11,6 @@ export default function JobDetailsPage() {
 
   const [job, setJob] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [completing, setCompleting] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
@@ -102,59 +24,25 @@ export default function JobDetailsPage() {
 
   const fetchJobDetails = async (token: string) => {
     try {
-      console.log('Fetching job details for ID:', jobId)
       const response = await fetch(`/api/jobs/${jobId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
 
-      console.log('Response status:', response.status)
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('Error response:', errorData)
-        throw new Error(errorData.error || 'Failed to fetch job details')
+      if (response.ok) {
+        const data = await response.json()
+        setJob(data.jobRequest)
+      } else {
+        alert('Failed to load job details')
+        router.push('/dashboard')
       }
-
-      const data = await response.json()
-      console.log('Job data received:', data)
-      setJob(data.jobRequest)
     } catch (error) {
-      console.error('Job details error:', error)
-      alert(`Failed to load job details: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      console.error('Error fetching job:', error)
+      alert('Failed to load job details')
       router.push('/dashboard')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleMarkComplete = async () => {
-    if (!confirm('Are you sure you want to mark this job as complete?')) {
-      return
-    }
-
-    setCompleting(true)
-    try {
-      const token = localStorage.getItem('accessToken')
-      const response = await fetch(`/api/jobs/${jobId}/complete`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to mark job as complete')
-      }
-
-      alert('Job marked as complete!')
-      router.push('/dashboard')
-    } catch (error) {
-      console.error('Complete job error:', error)
-      alert('Failed to mark job as complete')
-    } finally {
-      setCompleting(false)
     }
   }
 
@@ -173,13 +61,22 @@ export default function JobDetailsPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">Job not found</p>
-          <Link href="/dashboard" className="mt-4 inline-block text-blue-600 hover:text-blue-700">
-            Back to Dashboard
+          <p className="text-gray-600 mb-4">Job not found</p>
+          <Link href="/dashboard" className="text-blue-600 hover:text-blue-700">
+            ← Back to Dashboard
           </Link>
         </div>
       </div>
     )
+  }
+
+  const getPropertyTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      residential: 'Residential',
+      commercial: 'Commercial',
+      multi_family: 'Multi-Family / Property Manager',
+    }
+    return labels[type] || 'Residential'
   }
 
   return (
@@ -187,11 +84,9 @@ export default function JobDetailsPage() {
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center">
-              <Link href="/dashboard" className="text-2xl font-bold text-blue-600">
-                UpKeep
-              </Link>
-            </div>
+            <Link href="/dashboard" className="text-2xl font-bold text-blue-600">
+              UpKeep
+            </Link>
             <Link
               href="/dashboard"
               className="px-4 py-2 text-gray-700 hover:text-gray-900"
@@ -204,135 +99,156 @@ export default function JobDetailsPage() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow-lg p-8">
-          {/* Progress Bar */}
-          <JobProgressBar status={job.status} />
-
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{job.category}</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Created {new Date(job.createdAt).toLocaleDateString()}
-              </p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {job.category.toUpperCase()} Service Request
+              </h1>
+              <div className="flex gap-3">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                  {getPropertyTypeLabel(job.propertyType)}
+                </span>
+                <span className="text-sm text-gray-500">
+                  Submitted {new Date(job.createdAt).toLocaleDateString()}
+                </span>
+              </div>
             </div>
-            <span
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                job.status === 'resolved_diy'
-                  ? 'bg-green-100 text-green-800'
-                  : job.status === 'completed'
-                  ? 'bg-green-100 text-green-800'
-                  : job.status === 'cancelled'
-                  ? 'bg-red-100 text-red-800'
-                  : job.status === 'ai_diagnosis'
-                  ? 'bg-purple-100 text-purple-800'
-                  : 'bg-blue-100 text-blue-800'
-              }`}
-            >
-              {job.status.replace(/_/g, ' ')}
-            </span>
           </div>
 
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Problem Description</h2>
-              <p className="text-gray-700">{job.description}</p>
-            </div>
-
-            {job.location && (
+          {/* Status Banner */}
+          <div className="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">Location</h2>
-                <p className="text-gray-700">
-                  {job.location.street}<br />
-                  {job.location.city}, {job.location.state} {job.location.zipCode}
+                <p className="text-sm font-medium text-blue-900">
+                  Your request has been sent to local professionals
+                </p>
+                <p className="text-sm text-blue-800 mt-1">
+                  Expect calls or texts from pros who want to compete for your job. Compare their quotes and choose the best one!
                 </p>
               </div>
-            )}
-
-            {job.mediaFiles && job.mediaFiles.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">Attachments</h2>
-                <div className="grid grid-cols-3 gap-4">
-                  {job.mediaFiles.map((file: any) => (
-                    <div key={file.id} className="border rounded-lg p-2">
-                      <p className="text-sm text-gray-600 truncate">{file.filename}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {job.serviceProvider && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">Service Provider</h2>
-                <div className="border rounded-lg p-4">
-                  <p className="font-medium text-gray-900">
-                    {job.serviceProvider.businessName}
-                  </p>
-                  <p className="text-sm text-gray-600">{job.serviceProvider.phoneNumber}</p>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
 
-          <div className="mt-8 pt-6 border-t">
-            <div className="flex gap-4 flex-wrap">
-              {/* View Diagnostic Report */}
-              {['diagnostic_completed', 'repair_pending_approval', 'repair_approved', 'in_progress', 'completed'].includes(job.status) && (
-                <Link
-                  href={`/jobs/${jobId}/diagnostic-report`}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                >
-                  View Professional Assessment
-                </Link>
-              )}
+          {/* Problem Details */}
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Problem Description</h2>
+            <p className="text-gray-700 whitespace-pre-wrap">{job.description}</p>
+          </div>
 
-              {/* Approve Repair Quote */}
-              {job.status === 'repair_pending_approval' && (
-                <Link
-                  href={`/jobs/${jobId}/approve-repair`}
-                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-                >
-                  Review Repair Quote
-                </Link>
-              )}
-
-              {/* Mark as Complete */}
-              {['diagnostic_scheduled', 'diagnostic_completed', 'repair_approved', 'in_progress'].includes(job.status) && (
-                <button
-                  onClick={handleMarkComplete}
-                  disabled={completing}
-                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {completing ? 'Marking Complete...' : 'Mark as Complete'}
-                </button>
-              )}
-
-              {/* Find Professionals */}
-              {['submitted', 'pending_match'].includes(job.status) && (
-                <Link
-                  href={`/problems/${jobId}/professionals`}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                >
-                  Find Professionals
-                </Link>
-              )}
-
-              {/* Continue AI Chat */}
-              {['submitted', 'ai_diagnosis'].includes(job.status) && (
-                <Link
-                  href={`/problems/${jobId}/chat`}
-                  className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
-                >
-                  Continue AI Diagnosis
-                </Link>
-              )}
-
-              <Link
-                href="/dashboard"
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
-              >
-                Back to Dashboard
-              </Link>
+          {/* Location */}
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Location</h2>
+            <div className="text-gray-700">
+              <p>{job.location.street}</p>
+              <p>
+                {job.location.city}, {job.location.state} {job.location.zipCode}
+              </p>
             </div>
+          </div>
+
+          {/* Photos */}
+          {job.mediaFiles && job.mediaFiles.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Photos</h2>
+              <div className="grid grid-cols-3 gap-4">
+                {job.mediaFiles.map((file: any) => (
+                  <img
+                    key={file.id}
+                    src={file.url}
+                    alt="Problem photo"
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Lead Status */}
+          <div className="border-t pt-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Status</h2>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Request Submitted</p>
+                  <p className="text-sm text-gray-600">
+                    {new Date(job.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  job.viewCount > 0 ? 'bg-green-100' : 'bg-gray-100'
+                }`}>
+                  {job.viewCount > 0 ? (
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">
+                    {job.viewCount > 0 ? `${job.viewCount} Pros Viewing` : 'Waiting for Pros to View'}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {job.viewCount > 0 
+                      ? 'Professionals are reviewing your request'
+                      : 'Pros will be notified via SMS'}
+                  </p>
+                </div>
+              </div>
+
+              {job.leadStatus === 'accepted' && job.acceptedAt && (
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">Pro Accepted Your Job</p>
+                    <p className="text-sm text-gray-600">
+                      {new Date(job.acceptedAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* What's Next */}
+          <div className="mt-8 bg-gray-50 rounded-lg p-6">
+            <h3 className="font-semibold text-gray-900 mb-3">What happens next?</h3>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li className="flex gap-2">
+                <span>1.</span>
+                <span>Local pros receive your request via SMS</span>
+              </li>
+              <li className="flex gap-2">
+                <span>2.</span>
+                <span>They'll call or text you directly to discuss your needs</span>
+              </li>
+              <li className="flex gap-2">
+                <span>3.</span>
+                <span>Compare quotes and choose the best pro for your job</span>
+              </li>
+              <li className="flex gap-2">
+                <span>4.</span>
+                <span>Schedule the work directly with your chosen pro</span>
+              </li>
+            </ul>
           </div>
         </div>
       </main>
