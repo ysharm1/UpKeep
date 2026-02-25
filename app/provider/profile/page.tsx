@@ -130,7 +130,7 @@ export default function ProviderProfilePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-3 gap-6 mt-6 pt-6 border-t">
+          <div className="grid grid-cols-2 gap-6 mt-6 pt-6 border-t">
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-600">{completedJobs.length}</div>
               <div className="text-sm text-gray-600">Completed Jobs</div>
@@ -140,10 +140,6 @@ export default function ProviderProfilePage() {
                 {averageRating > 0 ? averageRating.toFixed(1) : 'N/A'}
               </div>
               <div className="text-sm text-gray-600">Average Rating</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">${profile?.diagnosticFee || 0}</div>
-              <div className="text-sm text-gray-600">Consultation Fee</div>
             </div>
           </div>
 

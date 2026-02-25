@@ -331,294 +331,99 @@ export default function ProviderDashboardPage() {
         </div>
 
         {/* Job Stats */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Available Jobs</h3>
+            <h3 className="text-sm font-medium text-gray-500">Jobs Claimed</h3>
             <p className="text-3xl font-bold text-blue-600 mt-2">
-              {availableJobs.length}
+              {jobs.filter(j => j.serviceProviderId).length}
             </p>
-            <p className="text-sm text-gray-600 mt-1">Jobs near you waiting to be claimed</p>
-            <Link
-              href="/provider/jobs/find"
-              className="mt-3 inline-block text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Browse all jobs →
-            </Link>
+            <p className="text-sm text-gray-600 mt-1">Jobs you've accepted and are working on</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Scheduled Visits</h3>
+            <h3 className="text-sm font-medium text-gray-500">Completed Jobs</h3>
             <p className="text-3xl font-bold text-gray-900 mt-2">
-              {jobs.filter(j => j.status === 'diagnostic_scheduled').length}
+              {jobs.filter(j => j.status === 'completed').length}
             </p>
-            <p className="text-sm text-gray-600 mt-1">Diagnostic visits scheduled</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Active Jobs</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-2">
-              {jobs.filter(j => ['repair_approved', 'in_progress'].includes(j.status)).length}
-            </p>
-            <p className="text-sm text-gray-600 mt-1">Repair quotes accepted</p>
+            <p className="text-sm text-gray-600 mt-1">Successfully completed jobs</p>
           </div>
         </div>
 
-        {/* Available Jobs - Quick Preview */}
-        {availableJobs.length > 0 && (
-          <div className="bg-white rounded-lg shadow mb-8">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">Available Jobs Near You</h2>
-                <p className="text-sm text-gray-600 mt-1">Quick preview - see all jobs on the Find Jobs page</p>
-              </div>
-              <Link
-                href="/provider/jobs/find"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-              >
-                View All Jobs
-              </Link>
-            </div>
-            <div className="divide-y divide-gray-200">
-              {availableJobs.slice(0, 3).map(job => (
-                <div key={job.id} className="px-6 py-4 hover:bg-gray-50">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-gray-900">{job.category.toUpperCase()}</h3>
-                        <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded">New</span>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {job.description.substring(0, 150)}...
-                      </p>
-                      <div className="flex gap-4 mt-2">
-                        <span className="text-xs text-gray-500">
-                          📍 {job.location?.city}, {job.location?.state} {job.location?.zipCode}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          🕒 Posted {new Date(job.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleClaimJob(job.id)}
-                      disabled={claimingJob === job.id}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium disabled:bg-gray-400"
-                    >
-                      {claimingJob === job.id ? 'Claiming...' : 'Claim Job'}
-                    </button>
-                    <Link
-                      href={`/provider/jobs/available/${job.id}`}
-                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
-                    >
-                      View Details
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Scheduled Diagnostic Visits */}
+        {/* Your Accepted Leads */}
         <div className="bg-white rounded-lg shadow mb-8">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Your Jobs</h2>
-            <p className="text-sm text-gray-600 mt-1">Jobs you've claimed and diagnostic visits</p>
+            <h2 className="text-xl font-semibold text-gray-900">Your Accepted Leads</h2>
+            <p className="text-sm text-gray-600 mt-1">Leads you've won - contact these homeowners directly</p>
           </div>
           <div className="divide-y divide-gray-200">
-            {jobs.filter(j => ['matched', 'accepted', 'diagnostic_scheduled'].includes(j.status)).length === 0 ? (
+            {jobs.filter(j => j.leadStatus === 'accepted' && j.acceptedBy).length === 0 ? (
               <div className="px-6 py-12 text-center">
-                <p className="text-gray-500">No claimed jobs yet</p>
-                <p className="text-sm text-gray-400 mt-2">Claim a job from the available jobs section</p>
+                <p className="text-gray-500">No accepted leads yet</p>
+                <p className="text-sm text-gray-400 mt-2">Visit the Lead Marketplace to view and accept leads</p>
+                <Link
+                  href="/provider/leads"
+                  className="mt-4 inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+                >
+                  Browse Leads
+                </Link>
               </div>
             ) : (
-              jobs.filter(j => ['matched', 'accepted', 'diagnostic_scheduled'].includes(j.status)).map(job => (
+              jobs.filter(j => j.leadStatus === 'accepted' && j.acceptedBy).map(job => (
                 <div key={job.id} className="px-6 py-4 hover:bg-gray-50">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-medium text-gray-900">{job.category.toUpperCase()}</h3>
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          job.status === 'matched' ? 'bg-yellow-100 text-yellow-800' :
-                          job.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                          'bg-blue-100 text-blue-800'
-                        }`}>
-                          {job.status === 'matched' ? 'Claimed - Awaiting Booking' :
-                           job.status === 'accepted' ? 'Booking Confirmed' :
-                           'Scheduled'}
+                        <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded font-semibold">
+                          WON - Contact Customer
                         </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {job.description.substring(0, 150)}...
-                      </p>
-                      <div className="flex gap-4 mt-2">
-                        <span className="text-xs text-gray-500">
-                          📍 {job.location?.city}, {job.location?.state} {job.location?.zipCode}
-                        </span>
-                        {job.scheduledDate && (
-                          <span className="text-xs text-gray-500">
-                            🕒 Scheduled: {new Date(job.scheduledDate).toLocaleString()}
+                        {job.propertyType && job.propertyType !== 'residential' && (
+                          <span className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded">
+                            {job.propertyType === 'multi_family' ? 'Multi-Family' : 'Commercial'}
                           </span>
                         )}
                       </div>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {job.description.substring(0, 150)}...
+                      </p>
+                      <div className="flex gap-4 mt-2">
+                        <span className="text-xs text-gray-500">
+                          📍 {job.location?.street}, {job.location?.city}, {job.location?.state} {job.location?.zipCode}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          🕒 Accepted {new Date(job.acceptedAt || job.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
                       {job.homeowner && (
-                        <div className="mt-2">
-                          <span className="text-sm font-medium text-gray-900">
-                            Homeowner: {job.homeowner.user?.email}
-                          </span>
+                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                          <p className="text-sm font-semibold text-blue-900 mb-1">Customer Contact Info:</p>
+                          <div className="text-sm text-blue-800">
+                            <p><strong>Name:</strong> {job.homeowner.firstName} {job.homeowner.lastName}</p>
+                            <p><strong>Phone:</strong> {job.homeowner.phoneNumber}</p>
+                            <p><strong>Email:</strong> {job.homeowner.user?.email}</p>
+                          </div>
                         </div>
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleStartConversation(job.id)}
-                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+                  <div className="flex gap-2 mt-3">
+                    <a
+                      href={`tel:${job.homeowner?.phoneNumber}`}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
                     >
-                      Message Homeowner
-                    </button>
-                    {job.status === 'accepted' && (
-                      <Link
-                        href={`/provider/jobs/${job.id}/schedule`}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-                      >
-                        Schedule Diagnostic
-                      </Link>
-                    )}
-                    {job.status === 'diagnostic_scheduled' && (
-                      <Link
-                        href={`/provider/jobs/${job.id}/diagnostic-report`}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-                      >
-                        Submit Assessment
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Diagnostic Completed - Need Repair Quote */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Awaiting Repair Quote</h2>
-            <p className="text-sm text-gray-600 mt-1">Diagnostics completed - submit repair quotes</p>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {jobs.filter(j => ['diagnostic_completed', 'repair_pending_approval'].includes(j.status)).length === 0 ? (
-              <div className="px-6 py-12 text-center">
-                <p className="text-gray-500">No jobs awaiting quotes</p>
-              </div>
-            ) : (
-              jobs.filter(j => ['diagnostic_completed', 'repair_pending_approval'].includes(j.status)).map(job => (
-                <div key={job.id} className="px-6 py-4 hover:bg-gray-50">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-gray-900">{job.category.toUpperCase()}</h3>
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          job.status === 'diagnostic_completed' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-blue-100 text-blue-800'
-                        }`}>
-                          {job.status === 'diagnostic_completed' ? 'Need Quote' : 'Quote Pending Approval'}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {job.description.substring(0, 150)}...
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    {job.status === 'diagnostic_completed' && (
-                      <Link
-                        href={`/provider/jobs/${job.id}/repair-quote`}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-                      >
-                        Submit Repair Quote
-                      </Link>
-                    )}
-                    {job.status === 'repair_pending_approval' && (
-                      <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium">
-                        Waiting for homeowner approval
-                      </span>
-                    )}
-                    <button
-                      onClick={() => handleStartConversation(job.id)}
-                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
-                    >
-                      Message Homeowner
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Active Jobs */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-900">Active Jobs</h2>
-            <span className="text-sm text-gray-500">Repair quotes accepted</span>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {jobs.filter(j => ['repair_approved', 'in_progress'].includes(j.status)).length === 0 ? (
-              <div className="px-6 py-12 text-center">
-                <p className="text-gray-500">No active jobs</p>
-                <p className="text-sm text-gray-400 mt-2">Accepted repair quotes will appear here</p>
-              </div>
-            ) : (
-              jobs.filter(j => ['repair_approved', 'in_progress'].includes(j.status)).map(job => (
-                <div key={job.id} className="px-6 py-4 hover:bg-gray-50">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-gray-900">{job.description.substring(0, 50)}...</h3>
-                        <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
-                          {job.status === 'repair_approved' ? 'Approved' : 'In Progress'}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {job.description.substring(0, 100)}...
-                      </p>
-                      <div className="flex gap-4 mt-2">
-                        <span className="text-xs text-gray-500">
-                          📍 {job.location?.city}, {job.location?.state} {job.location?.zipCode}
-                        </span>
-                      </div>
-                      <div className="mt-2">
-                        <span className="text-sm font-medium text-gray-900">
-                          {job.homeowner?.profile?.firstName} {job.homeowner?.profile?.lastName}
-                        </span>
-                        <span className="text-sm text-gray-600"> • {job.homeowner?.profile?.phoneNumber}</span>
-                      </div>
-                    </div>
-                    <div className="text-right ml-4">
-                      <div className="text-lg font-bold text-gray-900">
-                        ${(job.assignedProvider?.serviceProviderProfile?.diagnosticFee || 0) + (job.repairQuote?.totalAmount || 0)}
-                      </div>
-                      <div className="text-xs text-gray-500">Total (Diag + Repair)</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-green-50 border border-green-200 rounded p-3 mb-3">
-                    <div className="flex items-center gap-2 text-sm mb-2">
-                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="text-green-800 font-medium">Both Payments Authorized</span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleCompleteJob(job.id)}
+                      📞 Call Customer
+                    </a>
+                    <a
+                      href={`sms:${job.homeowner?.phoneNumber}`}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
                     >
-                      Mark as Complete
-                    </button>
+                      💬 Text Customer
+                    </a>
+                    <Link
+                      href={`/jobs/${job.id}`}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+                    >
+                      View Full Details
+                    </Link>
                   </div>
                 </div>
               ))
