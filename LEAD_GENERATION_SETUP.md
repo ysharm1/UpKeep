@@ -1,38 +1,38 @@
-# Pay-to-Play Competitive Lead Generation Model - Setup Guide
+# Lead Generation Platform - Setup Guide
 
 ## The Model
 
-**Competitive bidding where speed wins:**
+**Simple pay-per-lead model:**
 - Homeowner submits problem: FREE
-- 3 partners ALL see the lead: Each pays $25
-- First to book appointment: Pays additional $50 (total $75)
-- If no booking in 24 hours: All get $25 refund
+- 3 providers notified via SMS
+- Each provider pays $15 to view full details
+- One provider pays $50 to accept lead exclusively
+- After acceptance, provider handles everything directly with customer
 
 **Your revenue per lead:**
-- 3 partners × $25 = $75 (guaranteed when lead is sent)
-- Winner pays +$50 = $50 (when they book)
-- **Total: $125 per successful lead**
-- **If no booking: $0 (refund all)**
+- 3 providers × $15 = $45 (view fees)
+- 1 provider × $50 = $50 (acceptance fee)
+- **Total: $95 per lead**
 
 ## Why This Model Works
 
 **For You:**
-- Higher revenue ($125 vs $50-75 per lead)
-- Partners pre-qualified (they pay to play)
-- Quality filter (only serious, fast partners survive)
+- Predictable revenue ($95 per lead)
+- No refunds or chargebacks
+- Simple payment flow
 - Scalable (add more partners = more revenue per lead)
 
 **For Partners:**
-- Lower risk ($25 vs $75 upfront)
-- Fair competition (everyone gets equal shot)
-- Speed advantage (fast responders win more)
-- High ROI (average job is $300-500, they pay $75)
+- Low risk ($15 to see if lead is good)
+- Fair pricing ($65 total for exclusive lead)
+- High ROI (average job is $300-500, they pay $65)
+- No competition after acceptance
 
 **For Homeowners:**
 - Completely FREE
-- 3 companies competing for their business
-- Fast response (partners race to contact them)
-- Better service (competition drives quality)
+- 3 companies notified immediately
+- Fast response from providers
+- No platform involvement after lead is accepted
 
 ## How It Works - Step by Step
 
@@ -44,30 +44,29 @@
 - Submits request
 
 ### 2. System Broadcasts to Partners
-- Finds all 3 partners for that category (HVAC, plumbing, etc.)
-- Charges each partner $25 (via Stripe)
-- Sends email notification to all 3 simultaneously
+- Finds 3 partners for that category (HVAC, plumbing, etc.)
+- Sends SMS notification to all 3 simultaneously
+- SMS includes: category, location, link to view details
 - Creates tracking record in database
 
-### 3. Partners Race to Respond
-- All 3 get email at same time
-- Email says "You're competing with 2 others"
-- They call/text customer immediately
-- First to book appointment through platform wins
+### 3. Partners View Lead
+- Partner clicks SMS link
+- Sees preview: category, location, brief description
+- Clicks "Pay $15 to View"
+- Stripe charges $15
+- Full details revealed: customer name, phone, email, photos, full description
 
-### 4. Winner Determined
-- Partner books appointment in system
-- System charges winner additional $50
-- System notifies other 2 they lost
-- Winner gets customer contact info
-- Losers only paid $25
+### 4. Partner Accepts Lead
+- Partner clicks "Accept This Lead - $50"
+- Stripe charges $50
+- Lead marked as accepted, other providers notified
+- Partner gets customer contact info
+- Partner contacts customer directly and completes job
 
-### 5. Refund if No Booking
-- 24-hour timer starts when lead is sent
-- If NO partner books in 24 hours:
-  - All 3 get $25 refund
-  - You make $0 on that lead
-  - Lead quality issue (investigate why)
+### 5. No Refunds
+- Once a provider pays $15 to view, no refund
+- Once a provider pays $50 to accept, no refund
+- Simple, predictable revenue model
 
 ## Setup Steps
 
@@ -104,7 +103,7 @@ export const PARTNERS: Partner[] = [
     id: 'partner-1',
     name: 'ABC HVAC Services',
     email: 'john@abchvac.com',
-    phone: '555-0100',
+    phone: '+15551234567', // Must be E.164 format
     categories: ['hvac'],
     serviceArea: {
       city: 'Phoenix',
@@ -112,9 +111,8 @@ export const PARTNERS: Partner[] = [
       radius: 25,
     },
     active: true,
-    viewFee: 25,  // Pay to see lead
-    winFee: 50,   // Additional if they win
-    stripeCustomerId: 'cus_xxx', // Add after creating Stripe customer
+    viewFee: 15,  // Pay to view lead
+    acceptFee: 50, // Pay to accept lead
   },
   // Add 2 more partners for HVAC
   // Then add 3 partners for plumbing, etc.
@@ -124,14 +122,14 @@ export const PARTNERS: Partner[] = [
 ### 4. Set Up Stripe for Partner Billing
 
 **For each partner:**
-1. Create Stripe customer
+1. Create Stripe customer when they register
 2. Save payment method
-3. Add `stripeCustomerId` to partner config
+3. System stores `stripeCustomerId` in database
 
 **Charging flow:**
-- Lead created → Charge all 3 partners $25
-- Partner books → Charge winner additional $50
-- No booking in 24h → Refund all 3 partners $25
+- Provider clicks "Pay $15 to View" → Charge $15 via Stripe
+- Provider clicks "Accept Lead - $50" → Charge $50 via Stripe
+- No refunds, no chargebacks
 
 ### 5. Deploy and Test
 
@@ -143,61 +141,60 @@ git push origin main
 
 Test flow:
 1. Create test job as homeowner
-2. Verify all 3 partners get email
-3. Have one partner book appointment
-4. Verify winner charged $50 more
-5. Verify losers only paid $25
+2. Verify all 3 partners get SMS
+3. As provider, click SMS link
+4. Pay $15 to view (test card: 4242 4242 4242 4242)
+5. Verify full details shown
+6. Pay $50 to accept
+7. Verify other providers get "lead taken" SMS
 
 ## Revenue Projections
 
-**Month 1 (20 leads, 80% booking rate):**
-- 20 leads × 3 partners × $25 = $1,500
-- 16 successful bookings × $50 = $800
-- 4 refunds × 3 × $25 = -$300
-- **Net: $2,000**
+**Month 1 (20 leads):**
+- 20 leads × 3 partners × $15 = $900
+- 20 leads × $50 = $1,000
+- **Total: $1,900**
 
-**Month 3 (50 leads, 85% booking rate):**
-- 50 leads × 3 partners × $25 = $3,750
-- 42 successful bookings × $50 = $2,100
-- 8 refunds × 3 × $25 = -$600
-- **Net: $5,250**
+**Month 3 (50 leads):**
+- 50 leads × 3 partners × $15 = $2,250
+- 50 leads × $50 = $2,500
+- **Total: $4,750**
 
-**Month 6 (100 leads, 90% booking rate):**
-- 100 leads × 3 partners × $25 = $7,500
-- 90 successful bookings × $50 = $4,500
-- 10 refunds × 3 × $25 = -$750
-- **Net: $11,250/month**
+**Month 6 (100 leads):**
+- 100 leads × 3 partners × $15 = $4,500
+- 100 leads × $50 = $5,000
+- **Total: $9,500/month**
 
 ## Partner Pitch
 
 **"Here's how it works:"**
 
-"You pay $25 to see each qualified lead. If you're the first to book an appointment with the customer, you pay an additional $50 (total $75). If you don't book, you only lose $25. If nobody books within 24 hours, you get your $25 back.
+"You pay $15 to see each qualified lead. If you want the lead, you pay an additional $50 to accept it exclusively (total $65). Once you accept, you get the customer's contact info and handle everything directly with them.
 
-The average job is worth $300-500, so you're paying $75 to get a $300+ job. That's a 4-5x ROI. Plus, you're competing with only 2 other companies, not 10+ like on Angi or HomeAdvisor.
+The average job is worth $300-500, so you're paying $65 to get a $300+ job. That's a 4-6x ROI. Plus, you only pay $15 to see if the lead is good before committing the full $65.
 
-The key is speed. Fastest responder wins. If you're good at responding quickly, you'll win most leads and make great money."
+No refunds, no chargebacks, no complicated booking systems. Simple and straightforward."
 
 ## Technical Implementation Status
 
 **✅ Completed:**
-- Partner configuration with multiple partners per category
-- Broadcasting leads to all partners simultaneously
-- Competitive email notifications
-- Partner tracking system
+- Database schema (LeadView, LeadAcceptance tables)
+- Stripe integration ($15 view, $50 accept)
+- SMS notifications via Twilio
+- Lead view API
+- Lead accept API
+- Get leads API (available/viewed/won)
+- Provider lead marketplace UI
+- Provider dashboard with lead stats
+- Job creation with SMS broadcasting
 
-**🚧 TODO (before launch):**
-- Stripe integration for charging partners
-- Booking system for partners to claim leads
-- Winner detection logic
-- 24-hour refund automation
-- Partner dashboard showing:
-  - Available leads
-  - Leads they're competing for
-  - Win/loss record
-  - Monthly billing
-
-**📋 Database Changes Needed:**
+**📋 Before Launch:**
+- Run database migration
+- Set up Twilio account
+- Add 3 real partners
+- Create provider accounts
+- Test end-to-end
+- Deploy to productionNeeded:**
 - LeadCharge table (track $25 charges per partner)
 - LeadBooking table (track who booked first)
 - Partner payment methods (Stripe customer IDs)

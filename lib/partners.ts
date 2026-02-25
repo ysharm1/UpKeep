@@ -32,7 +32,7 @@ export const PARTNERS: Partner[] = [
     id: 'partner-1',
     name: 'ABC HVAC Services',
     email: 'leads@abchvac.com', // Replace with real email
-    phone: '555-0100',
+    phone: '+14805550100', // MUST be E.164 format: +1 (country) + area code + number
     categories: ['hvac'],
     serviceArea: {
       city: 'Phoenix',
@@ -47,7 +47,7 @@ export const PARTNERS: Partner[] = [
     id: 'partner-2',
     name: 'Quick Fix HVAC',
     email: 'leads@quickfixhvac.com',
-    phone: '555-0101',
+    phone: '+14805550101', // MUST be E.164 format
     categories: ['hvac'],
     serviceArea: {
       city: 'Phoenix',
@@ -62,7 +62,7 @@ export const PARTNERS: Partner[] = [
     id: 'partner-3',
     name: 'Cool Air Pros',
     email: 'leads@coolairpros.com',
-    phone: '555-0102',
+    phone: '+14805550102', // MUST be E.164 format
     categories: ['hvac'],
     serviceArea: {
       city: 'Phoenix',
