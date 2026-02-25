@@ -3,6 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+
+const PaymentMethodSetup = dynamic(() => import('@/app/components/PaymentMethodSetup'), {
+  ssr: false,
+})
 
 export default function ProviderSettingsPage() {
   const router = useRouter()
@@ -10,6 +15,8 @@ export default function ProviderSettingsPage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [profileId, setProfileId] = useState('')
+  const [showPaymentSetup, setShowPaymentSetup] = useState(false)
+  const [hasPaymentMethod, setHasPaymentMethod] = useState(false)
   
   const [specialties, setSpecialties] = useState<string[]>([])
   const [businessName, setBusinessName] = useState('')
@@ -39,6 +46,7 @@ export default function ProviderSettingsPage() {
           if (data.user?.serviceProviderProfile) {
             const profile = data.user.serviceProviderProfile
             setProfileId(profile.id)
+            setHasPaymentMethod(!!profile.stripeCustomerId)
             if (profile.specialties) {
               setSpecialties(profile.specialties)
             }
@@ -232,6 +240,60 @@ export default function ProviderSettingsPage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Payment Method */}
+            <div className="border-b pb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Payment Method</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Add a payment method to purchase leads. You'll be charged when you view or accept leads.
+              </p>
+
+              {hasPaymentMethod && !showPaymentSetup ? (
+                <div className="bg-green-50 border-l-4 border-green-600 p-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-green-800 font-medium">✓ Payment method on file</p>
+                      <p className="text-green-700 text-sm mt-1">You're ready to purchase leads</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowPaymentSetup(true)}
+                      className="px-4 py-2 text-sm bg-white border border-green-600 text-green-700 rounded-lg hover:bg-green-50"
+                    >
+                      Update
+                    </button>
+                  </div>
+                </div>
+              ) : !showPaymentSetup ? (
+                <div className="bg-yellow-50 border-l-4 border-yellow-600 p-4">
+                  <p className="text-yellow-800 font-medium mb-3">⚠️ No payment method on file</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowPaymentSetup(true)}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                  >
+                    Add Payment Method
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <PaymentMethodSetup
+                    onSuccess={() => {
+                      setShowPaymentSetup(false)
+                      setHasPaymentMethod(true)
+                      alert('Payment method saved successfully!')
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPaymentSetup(false)}
+                    className="mt-4 text-sm text-gray-600 hover:text-gray-900"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="border-t pt-6">

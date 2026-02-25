@@ -94,10 +94,20 @@ export async function chargeViewFee(
 
     // Create payment intent
     const stripe = getStripe()
+    
+    // Get default payment method
+    const customer = await stripe.customers.retrieve(customerId)
+    const defaultPaymentMethod = (customer as any).invoice_settings?.default_payment_method
+    
+    if (!defaultPaymentMethod) {
+      return { success: false, error: 'No payment method on file. Please add a payment method in settings.' }
+    }
+    
     const paymentIntent = await stripe.paymentIntents.create({
       amount: pricing.viewPrice,
       currency: 'usd',
       customer: customerId,
+      payment_method: defaultPaymentMethod,
       description: `View ${propertyType} lead ${jobRequestId}`,
       metadata: {
         providerId,
@@ -106,10 +116,7 @@ export async function chargeViewFee(
         type: 'view_fee',
       },
       confirm: true,
-      automatic_payment_methods: {
-        enabled: true,
-        allow_redirects: 'never',
-      },
+      off_session: true,
     })
 
     // Create LeadView record
@@ -196,10 +203,20 @@ export async function chargeAcceptFee(
 
     // Create payment intent
     const stripe = getStripe()
+    
+    // Get default payment method
+    const customer = await stripe.customers.retrieve(provider.stripeCustomerId)
+    const defaultPaymentMethod = (customer as any).invoice_settings?.default_payment_method
+    
+    if (!defaultPaymentMethod) {
+      return { success: false, error: 'No payment method on file. Please add a payment method in settings.' }
+    }
+    
     const paymentIntent = await stripe.paymentIntents.create({
       amount: pricing.acceptPrice,
       currency: 'usd',
       customer: provider.stripeCustomerId,
+      payment_method: defaultPaymentMethod,
       description: `Accept ${propertyType} lead ${jobRequestId}`,
       metadata: {
         providerId,
@@ -208,10 +225,7 @@ export async function chargeAcceptFee(
         type: 'accept_fee',
       },
       confirm: true,
-      automatic_payment_methods: {
-        enabled: true,
-        allow_redirects: 'never',
-      },
+      off_session: true,
     })
 
     // Create LeadAcceptance record
@@ -293,5 +307,47 @@ export async function attachPaymentMethod(
   } catch (error: any) {
     console.error('Error attaching payment method:', error)
     return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Create a setup intent for adding payment method
+ */
+export async function createSetupIntent(
+  providerId: string
+): Promise<{ success: boolean; clientSecret?: string; error?: string }> {
+  try {
+    const provider = await prisma.serviceProviderProfile.findUnique({
+      where: { id: providerId },
+      include: { user: true },
+    })
+
+    if (!provider) {
+      return { success: false, error: 'Provider not found' }
+    }
+
+    // Create Stripe customer if doesn't exist
+    let customerId = provider.stripeCustomerId
+    if (!customerId) {
+      customerId = await createStripeCustomer(
+        providerId,
+        provider.user.email,
+        provider.businessName
+      )
+    }
+
+    const stripe = getStripe()
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      metadata: {
+        providerId,
+      },
+    })
+
+    return { success: true, clientSecret: setupIntent.client_secret! }
+  } catch (error: any) {
+    console.error('Error creating setup intent:', error)
+    return { success: false, error: error.message || 'Failed to create setup intent' }
   }
 }
