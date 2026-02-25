@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { category, description, location, mediaFileIds } = body
+    const { category, propertyType = 'residential', description, location, mediaFileIds } = body
 
     if (!category || !description || !location) {
       return NextResponse.json(
@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
     const jobRequest = await jobService.createJobRequest({
       homeownerId: user.homeownerProfile!.id,
       category: category as ServiceCategory,
+      propertyType,
       description,
       location,
       mediaFileIds,

@@ -4,6 +4,7 @@ import { prisma } from '../prisma'
 export interface CreateJobRequestData {
   homeownerId: string
   category: ServiceCategory
+  propertyType?: string
   description: string
   location: {
     street: string
@@ -29,7 +30,7 @@ export class JobService {
    * Requirements: 2.1, 2.3
    */
   async createJobRequest(data: CreateJobRequestData): Promise<JobRequest> {
-    const { homeownerId, category, description, location, mediaFileIds } = data
+    const { homeownerId, category, propertyType = 'residential', description, location, mediaFileIds } = data
 
     // Validate description length (minimum 10 characters)
     if (description.length < 10) {
@@ -50,6 +51,7 @@ export class JobService {
       data: {
         homeownerId,
         category,
+        propertyType: propertyType as any,
         description,
         locationId: address.id,
         status: JobStatus.submitted,

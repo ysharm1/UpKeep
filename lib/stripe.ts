@@ -1,5 +1,6 @@
 import Stripe from 'stripe'
 import { prisma } from './prisma'
+import { getLeadPricing, PropertyType } from './pricing'
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not defined')
@@ -40,13 +41,16 @@ export async function createStripeCustomer(
 }
 
 /**
- * Charge provider $15 to view a lead
+ * Charge provider to view a lead (dynamic pricing based on property type)
  */
 export async function chargeViewFee(
   providerId: string,
-  jobRequestId: string
+  jobRequestId: string,
+  propertyType: PropertyType = 'residential'
 ): Promise<{ success: boolean; chargeId?: string; error?: string }> {
   try {
+    const pricing = getLeadPricing(propertyType)
+
     // Get provider's Stripe customer ID
     const provider = await prisma.serviceProviderProfile.findUnique({
       where: { id: providerId },
@@ -83,13 +87,14 @@ export async function chargeViewFee(
 
     // Create payment intent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: 1500, // $15 in cents
+      amount: pricing.viewPrice,
       currency: 'usd',
       customer: customerId,
-      description: `View lead ${jobRequestId}`,
+      description: `View ${propertyType} lead ${jobRequestId}`,
       metadata: {
         providerId,
         jobRequestId,
+        propertyType,
         type: 'view_fee',
       },
       confirm: true,
@@ -105,7 +110,7 @@ export async function chargeViewFee(
         jobRequestId,
         providerId,
         stripeChargeId: paymentIntent.id,
-        amount: 1500,
+        amount: pricing.viewPrice,
       },
     })
 
@@ -123,7 +128,7 @@ export async function chargeViewFee(
       where: { id: providerId },
       data: {
         totalLeadsViewed: { increment: 1 },
-        totalSpent: { increment: 1500 },
+        totalSpent: { increment: pricing.viewPrice },
       },
     })
 
@@ -135,13 +140,16 @@ export async function chargeViewFee(
 }
 
 /**
- * Charge provider $50 to accept a lead
+ * Charge provider to accept a lead (dynamic pricing based on property type)
  */
 export async function chargeAcceptFee(
   providerId: string,
-  jobRequestId: string
+  jobRequestId: string,
+  propertyType: PropertyType = 'residential'
 ): Promise<{ success: boolean; chargeId?: string; error?: string }> {
   try {
+    const pricing = getLeadPricing(propertyType)
+
     // Get provider's Stripe customer ID
     const provider = await prisma.serviceProviderProfile.findUnique({
       where: { id: providerId },
@@ -180,13 +188,14 @@ export async function chargeAcceptFee(
 
     // Create payment intent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: 5000, // $50 in cents
+      amount: pricing.acceptPrice,
       currency: 'usd',
       customer: provider.stripeCustomerId,
-      description: `Accept lead ${jobRequestId}`,
+      description: `Accept ${propertyType} lead ${jobRequestId}`,
       metadata: {
         providerId,
         jobRequestId,
+        propertyType,
         type: 'accept_fee',
       },
       confirm: true,
@@ -202,7 +211,7 @@ export async function chargeAcceptFee(
         jobRequestId,
         providerId,
         stripeChargeId: paymentIntent.id,
-        amount: 5000,
+        amount: pricing.acceptPrice,
       },
     })
 
@@ -222,7 +231,7 @@ export async function chargeAcceptFee(
       where: { id: providerId },
       data: {
         totalLeadsAccepted: { increment: 1 },
-        totalSpent: { increment: 5000 },
+        totalSpent: { increment: pricing.acceptPrice },
       },
     })
 

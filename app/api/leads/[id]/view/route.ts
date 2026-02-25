@@ -53,8 +53,12 @@ export async function POST(
       )
     }
 
-    // Charge $15 view fee
-    const result = await chargeViewFee(user.serviceProviderProfile!.id, leadId)
+    // Charge view fee based on property type
+    const result = await chargeViewFee(
+      user.serviceProviderProfile!.id,
+      leadId,
+      lead.propertyType as any
+    )
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 })

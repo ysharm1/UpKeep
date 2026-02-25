@@ -23,6 +23,12 @@ enum ServiceCategory {
   general_maintenance
 }
 
+enum PropertyType {
+  residential
+  commercial
+  multi_family
+}
+
 enum JobStatus {
   submitted
   ai_diagnosis
@@ -196,6 +202,7 @@ model JobRequest {
   serviceProviderId         String?
   serviceProvider           ServiceProviderProfile? @relation(fields: [serviceProviderId], references: [id])
   category                  ServiceCategory
+  propertyType              PropertyType            @default(residential)
   description               String
   locationId                String
   location                  Address                 @relation(fields: [locationId], references: [id])
