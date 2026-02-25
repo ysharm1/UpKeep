@@ -42,7 +42,7 @@ export default function LeadDetailPage() {
 
   const fetchLead = async () => {
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('accessToken')
       const response = await fetch(`/api/leads/${leadId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -71,7 +71,7 @@ export default function LeadDetailPage() {
     setError('')
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('accessToken')
       const response = await fetch(`/api/leads/${leadId}/view`, {
         method: 'POST',
         headers: {
@@ -103,7 +103,7 @@ export default function LeadDetailPage() {
     setError('')
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('accessToken')
       const response = await fetch(`/api/leads/${leadId}/accept`, {
         method: 'POST',
         headers: {
