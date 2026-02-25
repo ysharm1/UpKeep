@@ -14,6 +14,12 @@ export default function ProviderDashboardPage() {
     wonLeads: 0,
     totalSpent: 0,
   })
+  const [providerStats, setProviderStats] = useState({
+    totalLeadsViewed: 0,
+    totalLeadsAccepted: 0,
+    totalSpent: 0,
+    conversionRate: 0,
+  })
   const [loading, setLoading] = useState(true)
   const [claimingJob, setClaimingJob] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -36,6 +42,29 @@ export default function ProviderDashboardPage() {
 
   const fetchDashboardData = async (token: string) => {
     try {
+      // Fetch provider profile for stats
+      const profileResponse = await fetch('/api/auth/me', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json()
+        const profile = profileData.user?.serviceProviderProfile
+        if (profile) {
+          const conversionRate = profile.totalLeadsViewed > 0 
+            ? (profile.totalLeadsAccepted / profile.totalLeadsViewed) * 100 
+            : 0
+          setProviderStats({
+            totalLeadsViewed: profile.totalLeadsViewed || 0,
+            totalLeadsAccepted: profile.totalLeadsAccepted || 0,
+            totalSpent: profile.totalSpent || 0,
+            conversionRate: Math.round(conversionRate),
+          })
+        }
+      }
+
       // Fetch provider's assigned jobs
       const response = await fetch('/api/jobs', {
         headers: {
@@ -247,12 +276,6 @@ export default function ProviderDashboardPage() {
                 Lead Marketplace
               </Link>
               <Link
-                href="/provider/leads"
-                className="px-4 py-2 text-gray-700 hover:text-gray-900"
-              >
-                Lead Marketplace
-              </Link>
-              <Link
                 href="/provider/settings"
                 className="px-4 py-2 text-gray-700 hover:text-gray-900"
               >
@@ -318,21 +341,70 @@ export default function ProviderDashboardPage() {
           </div>
         </div>
 
-        {/* Job Stats */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Jobs Claimed</h3>
-            <p className="text-3xl font-bold text-blue-600 mt-2">
-              {jobs.filter(j => j.serviceProviderId).length}
-            </p>
-            <p className="text-sm text-gray-600 mt-1">Jobs you've accepted and are working on</p>
+        {/* Lead Analytics - All Time Stats */}
+        <div className="bg-white rounded-lg shadow mb-8">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900">Lead Analytics</h2>
+            <p className="text-sm text-gray-600 mt-1">Your all-time performance metrics</p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Completed Jobs</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-2">
-              {jobs.filter(j => j.status === 'completed').length}
-            </p>
-            <p className="text-sm text-gray-600 mt-1">Successfully completed jobs</p>
+          <div className="grid md:grid-cols-4 gap-6 p-6">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-3">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </div>
+              <p className="text-3xl font-bold text-gray-900">{providerStats.totalLeadsViewed}</p>
+              <p className="text-sm text-gray-600 mt-1">Total Leads Viewed</p>
+              <p className="text-xs text-gray-500 mt-1">$15 per view</p>
+            </div>
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-3">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="text-3xl font-bold text-gray-900">{providerStats.totalLeadsAccepted}</p>
+              <p className="text-sm text-gray-600 mt-1">Total Leads Accepted</p>
+              <p className="text-xs text-gray-500 mt-1">$50 per acceptance</p>
+            </div>
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full mb-3">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <p className="text-3xl font-bold text-gray-900">{providerStats.conversionRate}%</p>
+              <p className="text-sm text-gray-600 mt-1">Conversion Rate</p>
+              <p className="text-xs text-gray-500 mt-1">Accepted / Viewed</p>
+            </div>
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-full mb-3">
+                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="text-3xl font-bold text-gray-900">${(providerStats.totalSpent / 100).toFixed(0)}</p>
+              <p className="text-sm text-gray-600 mt-1">Total Invested</p>
+              <p className="text-xs text-gray-500 mt-1">All-time spending</p>
+            </div>
+          </div>
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2 text-gray-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Average cost per accepted lead: <strong className="text-gray-900">${providerStats.totalLeadsAccepted > 0 ? ((providerStats.totalSpent / 100) / providerStats.totalLeadsAccepted).toFixed(2) : '0.00'}</strong></span>
+              </div>
+              <Link
+                href="/provider/leads"
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                View All Leads →
+              </Link>
+            </div>
           </div>
         </div>
 
