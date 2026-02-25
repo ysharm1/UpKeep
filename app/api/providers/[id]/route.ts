@@ -23,15 +23,7 @@ export async function PUT(
       )
     }
 
-    const { diagnosticFee, specialties, businessName, phoneNumber, licenseNumber } = await request.json()
-
-    // Validate diagnostic fee if provided
-    if (diagnosticFee !== undefined && (typeof diagnosticFee !== 'number' || diagnosticFee < 0)) {
-      return NextResponse.json(
-        { error: 'Invalid diagnostic fee' },
-        { status: 400 }
-      )
-    }
+    const { specialties, businessName, phoneNumber, licenseNumber } = await request.json()
 
     // Validate specialties if provided
     const validSpecialties = ['hvac', 'plumbing', 'electrical', 'general_maintenance']
@@ -50,7 +42,6 @@ export async function PUT(
 
     // Build update data
     const updateData: any = {}
-    if (diagnosticFee !== undefined) updateData.diagnosticFee = diagnosticFee
     if (specialties !== undefined) updateData.specialties = specialties
     if (businessName !== undefined) updateData.businessName = businessName
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber

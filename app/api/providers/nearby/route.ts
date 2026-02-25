@@ -17,18 +17,14 @@ export async function POST(request: NextRequest) {
 
     // Find providers that:
     // 1. Have the requested specialty
-    // 2. Are verified (optional for now)
-    // 3. Have set a diagnostic fee
-    // 4. Are in the area (for now, show all - will add location filtering later)
+    // 2. Are active
     
     const providers = await prisma.serviceProviderProfile.findMany({
       where: {
         specialties: {
           has: category,
         },
-        diagnosticFee: {
-          not: null,
-        },
+        isActive: true,
       },
       include: {
         user: {
@@ -52,7 +48,6 @@ export async function POST(request: NextRequest) {
       reviews: 0, // TODO: Count actual reviews
       specialties: provider.specialties,
       distance: 5.0, // TODO: Calculate actual distance
-      consultFee: provider.diagnosticFee || 75,
       verified: provider.verified,
       phoneNumber: provider.phoneNumber,
       licenseNumber: provider.licenseNumber,

@@ -31,14 +31,6 @@ export async function POST(
       return NextResponse.json({ error: 'Provider profile not found' }, { status: 404 })
     }
 
-    // Check if provider has set diagnostic fee
-    if (!providerProfile.diagnosticFee) {
-      return NextResponse.json(
-        { error: 'Please set your diagnostic fee in settings before claiming jobs' },
-        { status: 400 }
-      )
-    }
-
     // Get the job
     const job = await prisma.jobRequest.findUnique({
       where: { id: jobId },
