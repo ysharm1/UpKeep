@@ -253,12 +253,6 @@ export default function ProviderDashboardPage() {
                 Lead Marketplace
               </Link>
               <Link
-                href="/messages"
-                className="px-4 py-2 text-gray-700 hover:text-gray-900"
-              >
-                Messages
-              </Link>
-              <Link
                 href="/provider/settings"
                 className="px-4 py-2 text-gray-700 hover:text-gray-900"
               >
