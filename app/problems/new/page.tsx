@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import PhotoUpload from '@/app/components/PhotoUpload'
-import StripePaymentForm from '@/app/components/StripePaymentForm'
 
 export default function NewProblemPage() {
   const router = useRouter()
-  const [step, setStep] = useState<'describe' | 'ai-diagnosis' | 'resolved' | 'hire'>('describe')
+  const [step, setStep] = useState<'describe' | 'ai-diagnosis' | 'resolved' | 'submitted'>('describe')
   const [problem, setProblem] = useState({
     category: 'hvac',
     description: '',
@@ -84,7 +83,7 @@ export default function NewProblemPage() {
 
   // Fetch providers when step changes to 'hire'
   useEffect(() => {
-    if (!mounted || step !== 'hire') return
+    if (!mounted || step !== 'submitted') return
 
     const fetchProviders = async () => {
       try {
@@ -200,7 +199,7 @@ export default function NewProblemPage() {
   }
 
   const handleNeedProfessional = () => {
-    setStep('hire')
+    setStep('submitted')
   }
 
   const handleSkipToHire = async () => {
@@ -237,7 +236,7 @@ export default function NewProblemPage() {
         throw new Error(error.error || 'Failed to create problem')
       }
 
-      setStep('hire')
+      setStep('submitted')
     } catch (error: any) {
       console.error('Error:', error)
       alert(error.message || 'Failed to submit problem. Please try again.')
@@ -318,7 +317,7 @@ export default function NewProblemPage() {
     )
   }
 
-  if (step === 'hire') {
+  if (step === 'submitted') {
     const handleScheduleConsult = (provider: any) => {
       setSelectedProvider(provider)
       setBookingStep('schedule')
