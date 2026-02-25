@@ -30,11 +30,11 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center">
           <h2 className="text-5xl font-bold text-gray-900 mb-6">
-            Home Repairs Made Simple
+            Connect with Local Home Repair Pros
           </h2>
           <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-            Get instant AI diagnostics and connect with trusted local professionals for HVAC,
-            plumbing, electrical, and home maintenance. Fast, reliable, affordable.
+            Submit your home repair problem for FREE and get connected with trusted local professionals. 
+            No upfront costs - vendors compete for your business.
           </p>
 
           <div className="grid md:grid-cols-3 gap-8 mb-16">
@@ -48,17 +48,17 @@ export default function Home() {
 
             <div className="bg-white p-8 rounded-xl shadow-md">
               <div className="text-4xl mb-4">🤖</div>
-              <h3 className="text-xl font-semibold mb-2">Get AI Diagnosis</h3>
+              <h3 className="text-xl font-semibold mb-2">Get AI Insights</h3>
               <p className="text-gray-600">
-                Instant analysis with DIY tips or professional recommendation
+                Optional AI analysis with DIY tips and troubleshooting suggestions
               </p>
             </div>
 
             <div className="bg-white p-8 rounded-xl shadow-md">
               <div className="text-4xl mb-4">🔧</div>
-              <h3 className="text-xl font-semibold mb-2">Book a Pro</h3>
+              <h3 className="text-xl font-semibold mb-2">Vendors Contact You</h3>
               <p className="text-gray-600">
-                We connect you with a trusted local expert who'll fix it right
+                Local pros view your lead and reach out directly to help
               </p>
             </div>
           </div>
@@ -67,7 +67,7 @@ export default function Home() {
             href="/auth/register?role=homeowner"
             className="px-8 py-4 bg-blue-600 text-white text-lg rounded-lg hover:bg-blue-700 font-semibold inline-block"
           >
-            Get Help Now - $85 Diagnostic
+            Submit Your Problem - FREE
           </Link>
         </div>
 
@@ -85,22 +85,22 @@ export default function Home() {
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-blue-600">
                 2
               </div>
-              <h4 className="font-semibold mb-2">AI Analysis</h4>
-              <p className="text-gray-600 text-sm">Get instant diagnosis and recommendations</p>
+              <h4 className="font-semibold mb-2">Vendors Get Notified</h4>
+              <p className="text-gray-600 text-sm">Local pros in your area are alerted about your problem</p>
             </div>
             <div className="text-center">
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-blue-600">
                 3
               </div>
-              <h4 className="font-semibold mb-2">Expert Visits</h4>
-              <p className="text-gray-600 text-sm">Local pro comes out for $85 diagnostic</p>
+              <h4 className="font-semibold mb-2">They Contact You</h4>
+              <p className="text-gray-600 text-sm">Interested vendors reach out directly to discuss your needs</p>
             </div>
             <div className="text-center">
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-blue-600">
                 4
               </div>
-              <h4 className="font-semibold mb-2">Get It Fixed</h4>
-              <p className="text-gray-600 text-sm">Approve the quote and we'll handle the rest</p>
+              <h4 className="font-semibold mb-2">Choose Your Pro</h4>
+              <p className="text-gray-600 text-sm">Compare options and hire the best fit for your job</p>
             </div>
           </div>
         </div>
@@ -111,8 +111,8 @@ export default function Home() {
             <div className="flex items-start">
               <span className="text-green-500 mr-3 text-xl">✓</span>
               <div>
-                <h4 className="font-semibold mb-1">Instant AI Diagnostics</h4>
-                <p className="text-gray-600 text-sm">Know what's wrong before anyone comes out</p>
+                <h4 className="font-semibold mb-1">100% Free for Homeowners</h4>
+                <p className="text-gray-600 text-sm">No upfront costs - submit your problem at no charge</p>
               </div>
             </div>
             <div className="flex items-start">
@@ -125,8 +125,8 @@ export default function Home() {
             <div className="flex items-start">
               <span className="text-green-500 mr-3 text-xl">✓</span>
               <div>
-                <h4 className="font-semibold mb-1">Transparent Pricing</h4>
-                <p className="text-gray-600 text-sm">$85 diagnostic, clear quotes before work starts</p>
+                <h4 className="font-semibold mb-1">Multiple Vendors Compete</h4>
+                <p className="text-gray-600 text-sm">Get contacted by multiple pros - choose the best fit</p>
               </div>
             </div>
             <div className="flex items-start">
