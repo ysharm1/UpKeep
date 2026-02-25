@@ -140,3 +140,27 @@ Contact them ASAP to schedule. Good luck!
     message,
   })
 }
+
+/**
+ * Send lead purchase confirmation (new shared lead model)
+ */
+export async function sendLeadPurchaseConfirmation(
+  vendorPhone: string,
+  vendorName: string,
+  customerName: string,
+  customerPhone: string
+): Promise<boolean> {
+  const message = `✅ Lead purchased!
+
+Customer: ${customerName}
+Phone: ${customerPhone}
+
+Call them now to quote the job!
+
+- UpKeep`
+
+  return sendSMS({
+    to: vendorPhone,
+    message,
+  })
+}

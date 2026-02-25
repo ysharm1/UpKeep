@@ -48,9 +48,9 @@ export async function createStripeCustomer(
 }
 
 /**
- * Charge provider to view a lead (dynamic pricing based on property type)
+ * Charge provider to purchase a lead (single payment for full access)
  */
-export async function chargeViewFee(
+export async function purchaseLead(
   providerId: string,
   jobRequestId: string,
   propertyType: PropertyType = 'residential'
@@ -78,8 +78,8 @@ export async function chargeViewFee(
       )
     }
 
-    // Check if already viewed
-    const existingView = await prisma.leadView.findUnique({
+    // Check if already purchased
+    const existingPurchase = await prisma.leadView.findUnique({
       where: {
         jobRequestId_providerId: {
           jobRequestId,
@@ -88,8 +88,8 @@ export async function chargeViewFee(
       },
     })
 
-    if (existingView) {
-      return { success: false, error: 'Already viewed this lead' }
+    if (existingPurchase) {
+      return { success: false, error: 'Already purchased this lead' }
     }
 
     // Create payment intent
@@ -104,28 +104,28 @@ export async function chargeViewFee(
     }
     
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: pricing.viewPrice,
+      amount: pricing.price,
       currency: 'usd',
       customer: customerId,
       payment_method: defaultPaymentMethod,
-      description: `View ${propertyType} lead ${jobRequestId}`,
+      description: `Purchase ${propertyType} lead ${jobRequestId}`,
       metadata: {
         providerId,
         jobRequestId,
         propertyType,
-        type: 'view_fee',
+        type: 'lead_purchase',
       },
       confirm: true,
       off_session: true,
     })
 
-    // Create LeadView record
+    // Create LeadView record (now represents a purchase)
     await prisma.leadView.create({
       data: {
         jobRequestId,
         providerId,
         stripeChargeId: paymentIntent.id,
-        amount: pricing.viewPrice,
+        amount: pricing.price,
       },
     })
 
@@ -134,7 +134,7 @@ export async function chargeViewFee(
       where: { id: jobRequestId },
       data: {
         viewCount: { increment: 1 },
-        leadStatus: 'viewed',
+        leadStatus: 'viewed', // Multiple vendors can view
       },
     })
 
@@ -143,13 +143,13 @@ export async function chargeViewFee(
       where: { id: providerId },
       data: {
         totalLeadsViewed: { increment: 1 },
-        totalSpent: { increment: pricing.viewPrice },
+        totalSpent: { increment: pricing.price },
       },
     })
 
     return { success: true, chargeId: paymentIntent.id }
   } catch (error: any) {
-    console.error('Error charging view fee:', error)
+    console.error('Error purchasing lead:', error)
     return { success: false, error: error.message || 'Payment failed' }
   }
 }
@@ -351,3 +351,7 @@ export async function createSetupIntent(
     return { success: false, error: error.message || 'Failed to create setup intent' }
   }
 }
+
+
+// Backward compatibility aliases
+export const chargeViewFee = purchaseLead

@@ -312,32 +312,21 @@ export default function ProviderDashboardPage() {
         </div>
 
         {/* Lead Stats */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Link href="/provider/leads" className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-lg shadow-lg text-white hover:shadow-xl transition-shadow">
             <h3 className="text-sm font-medium opacity-90">Available Leads</h3>
             <p className="text-4xl font-bold mt-2">{leadStats.availableLeads}</p>
-            <p className="text-sm opacity-75 mt-1">Pay $15 to view</p>
+            <p className="text-sm opacity-75 mt-1">Starting at $40 each</p>
           </Link>
           <Link href="/provider/leads?tab=viewing" className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-lg shadow-lg text-white hover:shadow-xl transition-shadow">
-            <h3 className="text-sm font-medium opacity-90">I'm Viewing</h3>
+            <h3 className="text-sm font-medium opacity-90">Purchased Leads</h3>
             <p className="text-4xl font-bold mt-2">{leadStats.viewedLeads}</p>
-            <p className="text-sm opacity-75 mt-1">Paid $15 each</p>
-          </Link>
-          <Link href="/provider/leads?tab=won" className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-6 rounded-lg shadow-lg text-white hover:shadow-xl transition-shadow">
-            <h3 className="text-sm font-medium opacity-90">Leads Won</h3>
-            <p className="text-4xl font-bold mt-2">{leadStats.wonLeads}</p>
-            <p className="text-sm opacity-75 mt-1">Paid $65 each</p>
+            <p className="text-sm opacity-75 mt-1">Contact these customers</p>
           </Link>
           <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-lg shadow-lg text-white">
-            <h3 className="text-sm font-medium opacity-90">Win Rate</h3>
-            <p className="text-4xl font-bold mt-2">
-              {leadStats.viewedLeads > 0 
-                ? Math.round((leadStats.wonLeads / leadStats.viewedLeads) * 100) 
-                : 0}%
-            </p>
-            <p className="text-sm opacity-75 mt-1">
-              {leadStats.wonLeads} of {leadStats.viewedLeads} viewed
-            </p>
+            <h3 className="text-sm font-medium opacity-90">Total Invested</h3>
+            <p className="text-4xl font-bold mt-2">${(providerStats.totalSpent / 100).toFixed(0)}</p>
+            <p className="text-sm opacity-75 mt-1">All-time spending</p>
           </div>
         </div>
 
@@ -347,47 +336,36 @@ export default function ProviderDashboardPage() {
             <h2 className="text-xl font-semibold text-gray-900">Lead Analytics</h2>
             <p className="text-sm text-gray-600 mt-1">Your all-time performance metrics</p>
           </div>
-          <div className="grid md:grid-cols-4 gap-6 p-6">
+          <div className="grid md:grid-cols-3 gap-6 p-6">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-3">
                 <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                 </svg>
               </div>
               <p className="text-3xl font-bold text-gray-900">{providerStats.totalLeadsViewed}</p>
-              <p className="text-sm text-gray-600 mt-1">Total Leads Viewed</p>
-              <p className="text-xs text-gray-500 mt-1">$15 per view</p>
+              <p className="text-sm text-gray-600 mt-1">Total Leads Purchased</p>
+              <p className="text-xs text-gray-500 mt-1">$40-80 per lead</p>
             </div>
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-3">
                 <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <p className="text-3xl font-bold text-gray-900">{providerStats.totalLeadsAccepted}</p>
-              <p className="text-sm text-gray-600 mt-1">Total Leads Accepted</p>
-              <p className="text-xs text-gray-500 mt-1">$50 per acceptance</p>
-            </div>
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full mb-3">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              </div>
-              <p className="text-3xl font-bold text-gray-900">{providerStats.conversionRate}%</p>
-              <p className="text-sm text-gray-600 mt-1">Conversion Rate</p>
-              <p className="text-xs text-gray-500 mt-1">Accepted / Viewed</p>
-            </div>
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-full mb-3">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <p className="text-3xl font-bold text-gray-900">${(providerStats.totalSpent / 100).toFixed(0)}</p>
               <p className="text-sm text-gray-600 mt-1">Total Invested</p>
               <p className="text-xs text-gray-500 mt-1">All-time spending</p>
+            </div>
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full mb-3">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p className="text-3xl font-bold text-gray-900">${providerStats.totalLeadsViewed > 0 ? ((providerStats.totalSpent / 100) / providerStats.totalLeadsViewed).toFixed(2) : '0.00'}</p>
+              <p className="text-sm text-gray-600 mt-1">Avg Cost Per Lead</p>
+              <p className="text-xs text-gray-500 mt-1">Total / Purchased</p>
             </div>
           </div>
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
@@ -396,13 +374,13 @@ export default function ProviderDashboardPage() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Average cost per accepted lead: <strong className="text-gray-900">${providerStats.totalLeadsAccepted > 0 ? ((providerStats.totalSpent / 100) / providerStats.totalLeadsAccepted).toFixed(2) : '0.00'}</strong></span>
+                <span>Shared lead model: Multiple vendors can purchase the same lead</span>
               </div>
               <Link
                 href="/provider/leads"
                 className="text-blue-600 hover:text-blue-700 font-medium"
               >
-                View All Leads →
+                Browse Leads →
               </Link>
             </div>
           </div>

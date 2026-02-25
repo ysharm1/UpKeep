@@ -1,9 +1,9 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { authService } from '@/lib/auth/auth.service'
-import { chargeViewFee } from '@/lib/stripe'
+import { purchaseLead } from '@/lib/stripe'
 import { prisma } from '@/lib/prisma'
-import { sendLeadViewConfirmation } from '@/lib/sms'
+import { sendLeadPurchaseConfirmation } from '@/lib/sms'
 
 export async function POST(
   request: NextRequest,
@@ -20,7 +20,7 @@ export async function POST(
 
     if (user.role !== 'service_provider') {
       return NextResponse.json(
-        { error: 'Only service providers can view leads' },
+        { error: 'Only service providers can purchase leads' },
         { status: 403 }
       )
     }
@@ -45,16 +45,8 @@ export async function POST(
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
     }
 
-    // Check if lead is still available
-    if (lead.leadStatus === 'accepted') {
-      return NextResponse.json(
-        { error: 'Lead already accepted by another provider' },
-        { status: 400 }
-      )
-    }
-
-    // Charge view fee based on property type
-    const result = await chargeViewFee(
+    // Charge for lead purchase
+    const result = await purchaseLead(
       user.serviceProviderProfile!.id,
       leadId,
       lead.propertyType as any
@@ -65,7 +57,7 @@ export async function POST(
     }
 
     // Send SMS confirmation
-    await sendLeadViewConfirmation(
+    await sendLeadPurchaseConfirmation(
       user.serviceProviderProfile!.phoneNumber,
       user.serviceProviderProfile!.businessName,
       `${lead.homeowner.firstName} ${lead.homeowner.lastName}`,
@@ -74,7 +66,7 @@ export async function POST(
 
     // Return full lead details
     return NextResponse.json({
-      message: 'Lead unlocked successfully',
+      message: 'Lead purchased successfully',
       chargeId: result.chargeId,
       lead: {
         id: lead.id,
@@ -97,9 +89,9 @@ export async function POST(
       },
     })
   } catch (error: any) {
-    console.error('View lead error:', error)
+    console.error('Purchase lead error:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to view lead' },
+      { error: error.message || 'Failed to purchase lead' },
       { status: 500 }
     )
   }

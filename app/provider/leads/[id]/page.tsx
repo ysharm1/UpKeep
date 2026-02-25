@@ -1,12 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 
 interface LeadDetail {
   id: string
   category: string
+  propertyType: string
   description: string
   location: {
     street: string
@@ -27,7 +28,6 @@ interface LeadDetail {
 }
 
 export default function LeadDetailPage() {
-  const router = useRouter()
   const params = useParams()
   const leadId = params.id as string
 
@@ -65,7 +65,8 @@ export default function LeadDetailPage() {
   }
 
   const handleViewLead = async () => {
-    if (!confirm('Pay $15 to view full lead details?')) return
+    const pricing = lead?.propertyType === 'commercial' ? '$80' : lead?.propertyType === 'multi_family' ? '$60' : '$40'
+    if (!confirm(`Purchase this lead for ${pricing}? You'll get full customer contact details.`)) return
 
     setProcessing(true)
     setError('')
@@ -80,48 +81,16 @@ export default function LeadDetailPage() {
       })
 
       if (response.ok) {
-        const data = await response.json()
         // Refresh lead data to show full details
         await fetchLead()
-        alert('Lead unlocked! You can now see customer details.')
+        alert('Lead purchased! You can now see full customer details and contact them.')
       } else {
         const error = await response.json()
         setError(error.error || 'Payment failed')
       }
     } catch (error) {
-      console.error('Error viewing lead:', error)
+      console.error('Error purchasing lead:', error)
       setError('Payment failed. Please try again.')
-    } finally {
-      setProcessing(false)
-    }
-  }
-
-  const handleAcceptLead = async () => {
-    if (!confirm('Pay $50 to accept this lead exclusively? Total cost: $65')) return
-
-    setProcessing(true)
-    setError('')
-
-    try {
-      const token = localStorage.getItem('accessToken')
-      const response = await fetch(`/api/leads/${leadId}/accept`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        alert(`Lead accepted! Customer: ${data.customer.name}, Phone: ${data.customer.phone}`)
-        router.push('/provider/leads?tab=won')
-      } else {
-        const error = await response.json()
-        setError(error.error || 'Failed to accept lead')
-      }
-    } catch (error) {
-      console.error('Error accepting lead:', error)
-      setError('Failed to accept lead. Please try again.')
     } finally {
       setProcessing(false)
     }
@@ -231,7 +200,10 @@ export default function LeadDetailPage() {
               <div>
                 <div className="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
                   <p className="text-blue-800 font-medium">
-                    💡 Pay $15 to unlock full details including customer contact information
+                    💡 Pay {lead.propertyType === 'commercial' ? '$80' : lead.propertyType === 'multi_family' ? '$60' : '$40'} to unlock full details including customer contact information
+                  </p>
+                  <p className="text-blue-700 text-sm mt-1">
+                    Multiple vendors can purchase this lead - call the customer quickly!
                   </p>
                 </div>
 
@@ -265,13 +237,13 @@ export default function LeadDetailPage() {
                   <div className="border-t pt-6">
                     <button
                       onClick={handleViewLead}
-                      disabled={processing || lead.leadStatus === 'accepted'}
+                      disabled={processing}
                       className="w-full px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                     >
-                      {processing ? 'Processing...' : 'Pay $15 to View Full Details'}
+                      {processing ? 'Processing...' : `Purchase Lead - ${lead.propertyType === 'commercial' ? '$80' : lead.propertyType === 'multi_family' ? '$60' : '$40'}`}
                     </button>
                     <p className="text-sm text-gray-500 text-center mt-3">
-                      You'll be charged $15 to see customer name, phone, email, photos, and full description
+                      One-time payment for full customer details. Other vendors may also purchase this lead.
                     </p>
                   </div>
                 </div>
@@ -281,7 +253,10 @@ export default function LeadDetailPage() {
               <div>
                 <div className="bg-green-50 border-l-4 border-green-600 p-4 mb-6">
                   <p className="text-green-800 font-medium">
-                    ✅ You've unlocked this lead for $15
+                    ✅ You've purchased this lead
+                  </p>
+                  <p className="text-green-700 text-sm mt-1">
+                    Contact the customer now! Other vendors may have also purchased this lead.
                   </p>
                 </div>
 
@@ -344,22 +319,6 @@ export default function LeadDetailPage() {
                           />
                         ))}
                       </div>
-                    </div>
-                  )}
-
-                  {/* Accept Button */}
-                  {lead.leadStatus !== 'accepted' && (
-                    <div className="border-t pt-6">
-                      <button
-                        onClick={handleAcceptLead}
-                        disabled={processing}
-                        className="w-full px-8 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold text-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {processing ? 'Processing...' : 'Accept This Lead - $50'}
-                      </button>
-                      <p className="text-sm text-gray-500 text-center mt-3">
-                        Total cost: $65 ($15 view + $50 accept). You'll get exclusive access to this customer.
-                      </p>
                     </div>
                   )}
                 </div>
