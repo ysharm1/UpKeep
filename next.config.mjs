@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-// Lead generation platform - clean build v3
+// Lead generation platform - shared lead model v4
 const nextConfig = {
   eslint: {
     // Disable ESLint during builds (temporary - fix linting issues later)
