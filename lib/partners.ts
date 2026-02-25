@@ -1,3 +1,5 @@
+import { Coordinates, calculateDistance } from './geocoding'
+
 // Partner configuration for PAY-TO-PLAY competitive lead generation model
 // Multiple partners compete for each lead
 
@@ -11,6 +13,8 @@ export interface Partner {
     city: string
     state: string
     radius: number // miles
+    latitude?: number // Optional: for distance calculation
+    longitude?: number
   }
   active: boolean
   stripeCustomerId?: string // For charging them
@@ -70,6 +74,47 @@ export function findPartnersForCategory(category: string): Partner[] {
   return PARTNERS.filter(
     (p) => p.active && p.categories.includes(category.toLowerCase())
   )
+}
+
+// Find partners within service radius of a job location
+export function findPartnersNearLocation(
+  category: string,
+  jobLocation: Coordinates
+): Partner[] {
+  const allPartners = findPartnersForCategory(category)
+  
+  // If no job coordinates, return all partners (fallback)
+  if (!jobLocation.latitude || !jobLocation.longitude) {
+    console.warn('⚠️ No job coordinates provided, returning all partners')
+    return allPartners
+  }
+
+  // Filter by distance
+  const nearbyPartners = allPartners.filter((partner) => {
+    // If partner has no coordinates, include them (fallback)
+    if (!partner.serviceArea.latitude || !partner.serviceArea.longitude) {
+      console.warn(`⚠️ Partner ${partner.name} has no coordinates, including anyway`)
+      return true
+    }
+
+    const distance = calculateDistance(
+      { latitude: partner.serviceArea.latitude, longitude: partner.serviceArea.longitude },
+      jobLocation
+    )
+
+    const withinRadius = distance <= partner.serviceArea.radius
+    
+    if (withinRadius) {
+      console.log(`✅ Partner ${partner.name} is ${distance} miles away (within ${partner.serviceArea.radius} mile radius)`)
+    } else {
+      console.log(`❌ Partner ${partner.name} is ${distance} miles away (outside ${partner.serviceArea.radius} mile radius)`)
+    }
+
+    return withinRadius
+  })
+
+  console.log(`📍 Found ${nearbyPartners.length} partners within service area for ${category}`)
+  return nearbyPartners
 }
 
 // Get all active partners

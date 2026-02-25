@@ -3,9 +3,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jobService } from '@/lib/jobs/job.service'
 import { authService } from '@/lib/auth/auth.service'
 import { ServiceCategory } from '@prisma/client'
-import { findPartnersForCategory } from '@/lib/partners'
+import { findPartnersNearLocation } from '@/lib/partners'
 import { sendNewLeadNotification } from '@/lib/sms'
 import { prisma } from '@/lib/prisma'
+import { geocodeAddress } from '@/lib/geocoding'
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,11 +45,32 @@ export async function POST(request: NextRequest) {
       mediaFileIds,
     })
 
-    // PAY-TO-PLAY MODEL: Send SMS to ALL partners in this category
-    const partners = findPartnersForCategory(category)
+    // Geocode the address for geographic filtering
+    const coordinates = await geocodeAddress({
+      street: location.street,
+      city: location.city,
+      state: location.state,
+      zipCode: location.zipCode,
+    })
+
+    // Update job with coordinates if geocoding succeeded
+    if (coordinates) {
+      await prisma.jobRequest.update({
+        where: { id: jobRequest.id },
+        data: {
+          latitude: coordinates.latitude,
+          longitude: coordinates.longitude,
+        },
+      })
+    }
+
+    // PAY-TO-PLAY MODEL: Send SMS to partners within service area
+    const partners = coordinates
+      ? findPartnersNearLocation(category, coordinates)
+      : [] // If geocoding failed, don't notify anyone (or fallback to all partners)
     
     if (partners.length > 0) {
-      console.log(`📢 Broadcasting lead to ${partners.length} partners via SMS`)
+      console.log(`📢 Broadcasting lead to ${partners.length} nearby partners via SMS`)
       
       for (const partner of partners) {
         // Find provider account for this partner
@@ -66,7 +88,7 @@ export async function POST(request: NextRequest) {
             partner.phone,
             partner.name,
             category,
-            location,
+            `${location.city}, ${location.state}`,
             jobRequest.id
           )
 
@@ -76,7 +98,7 @@ export async function POST(request: NextRequest) {
         }
       }
     } else {
-      console.warn(`⚠️ No partners found for category: ${category}`)
+      console.warn(`⚠️ No partners found within service area for category: ${category}`)
     }
 
     return NextResponse.json({

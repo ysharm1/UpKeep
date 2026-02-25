@@ -94,6 +94,7 @@ model User {
   passwordHash  String
   role          UserRole
   emailVerified Boolean  @default(false)
+  phoneVerified Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -156,6 +157,11 @@ model ServiceProviderProfile {
   totalLeadsAccepted Int     @default(0)
   totalSpent         Int     @default(0) // in cents
 
+  // Geographic filtering
+  serviceRadius Int?   @default(25) // miles
+  latitude      Float?
+  longitude     Float?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -206,6 +212,8 @@ model JobRequest {
   description               String
   locationId                String
   location                  Address                 @relation(fields: [locationId], references: [id])
+  latitude                  Float?
+  longitude                 Float?
   status                    JobStatus               @default(submitted)
   priceQuote                Float?
   scheduledDate             DateTime?
