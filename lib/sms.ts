@@ -1,4 +1,5 @@
 import twilio from 'twilio'
+import { getAppUrl } from './config'
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID
 const authToken = process.env.TWILIO_AUTH_TOKEN
@@ -54,84 +55,14 @@ export async function sendNewLeadNotification(
   location: string,
   leadId: string
 ): Promise<boolean> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const appUrl = getAppUrl()
   const leadUrl = `${appUrl}/provider/leads/${leadId}`
 
   const message = `🔥 NEW ${category.toUpperCase()} LEAD - ${location}
 ⏰ Just posted - Act fast!
-👥 2 other pros notified
-💰 $15 to view | First to accept wins!
+💰 Starting at $40 to purchase
 
 View NOW: ${leadUrl}
-
-- UpKeep`
-
-  return sendSMS({
-    to: vendorPhone,
-    message,
-  })
-}
-
-/**
- * Send lead accepted notification (to losers)
- */
-export async function sendLeadAcceptedNotification(
-  vendorPhone: string,
-  vendorName: string,
-  category: string
-): Promise<boolean> {
-  const message = `The ${category} lead was accepted by another pro. You were charged $15 to view. Better luck next time!
-
-- UpKeep`
-
-  return sendSMS({
-    to: vendorPhone,
-    message,
-  })
-}
-
-/**
- * Send lead view confirmation
- */
-export async function sendLeadViewConfirmation(
-  vendorPhone: string,
-  vendorName: string,
-  customerName: string,
-  customerPhone: string
-): Promise<boolean> {
-  const message = `✅ Lead unlocked! You paid $15.
-
-Customer: ${customerName}
-Phone: ${customerPhone}
-
-Call them now! First to accept pays $50 more and wins the job.
-
-- UpKeep`
-
-  return sendSMS({
-    to: vendorPhone,
-    message,
-  })
-}
-
-/**
- * Send lead acceptance confirmation
- */
-export async function sendLeadAcceptanceConfirmation(
-  vendorPhone: string,
-  vendorName: string,
-  customerName: string,
-  customerPhone: string,
-  customerEmail: string
-): Promise<boolean> {
-  const message = `🎉 You won the lead! Total paid: $65
-
-Customer Details:
-Name: ${customerName}
-Phone: ${customerPhone}
-Email: ${customerEmail}
-
-Contact them ASAP to schedule. Good luck!
 
 - UpKeep`
 

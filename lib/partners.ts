@@ -13,17 +13,13 @@ export interface Partner {
     radius: number // miles
   }
   active: boolean
-  viewFee: number // Amount they pay to see a lead ($15)
-  acceptFee: number // Amount they pay to accept lead ($50)
   stripeCustomerId?: string // For charging them
 }
 
-// PRICING MODEL:
-// - All partners pay $15 to view the lead details
-// - First to accept pays $50 to get exclusive access
-// - Total cost for winner: $65
-// - Total cost for losers: $15
-// - Your revenue: $45 (3 × $15) + $50 (accept) = $95 per lead
+// SHARED LEAD MODEL:
+// - Multiple vendors can purchase the same lead
+// - Pricing: $40 (residential), $60 (multi-family), $80 (commercial)
+// - Revenue: 3-5 vendors × price = $120-400 per lead
 
 // CONFIGURATION: Add your partner details here
 export const PARTNERS: Partner[] = [
@@ -40,8 +36,6 @@ export const PARTNERS: Partner[] = [
       radius: 25,
     },
     active: true,
-    viewFee: 15,
-    acceptFee: 50,
   },
   {
     id: 'partner-2',
@@ -55,8 +49,6 @@ export const PARTNERS: Partner[] = [
       radius: 25,
     },
     active: true,
-    viewFee: 15,
-    acceptFee: 50,
   },
   {
     id: 'partner-3',
@@ -70,25 +62,7 @@ export const PARTNERS: Partner[] = [
       radius: 25,
     },
     active: true,
-    viewFee: 15,
-    acceptFee: 50,
   },
-  // Add more partners for other categories
-  // {
-  //   id: 'partner-4',
-  //   name: 'XYZ Plumbing',
-  //   email: 'leads@xyzplumbing.com',
-  //   phone: '555-0200',
-  //   categories: ['plumbing'],
-  //   serviceArea: {
-  //     city: 'Phoenix',
-  //     state: 'AZ',
-  //     radius: 25,
-  //   },
-  //   active: true,
-  //   viewFee: 15,
-  //   acceptFee: 50,
-  // },
 ]
 
 // Find ALL partners for a given service category (for competitive bidding)

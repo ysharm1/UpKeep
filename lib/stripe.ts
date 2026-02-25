@@ -155,117 +155,6 @@ export async function purchaseLead(
 }
 
 /**
- * Charge provider to accept a lead (dynamic pricing based on property type)
- */
-export async function chargeAcceptFee(
-  providerId: string,
-  jobRequestId: string,
-  propertyType: PropertyType = 'residential'
-): Promise<{ success: boolean; chargeId?: string; error?: string }> {
-  try {
-    const pricing = getLeadPricing(propertyType)
-
-    // Get provider's Stripe customer ID
-    const provider = await prisma.serviceProviderProfile.findUnique({
-      where: { id: providerId },
-    })
-
-    if (!provider || !provider.stripeCustomerId) {
-      return { success: false, error: 'Provider not found or no payment method' }
-    }
-
-    // Check if lead is still available
-    const jobRequest = await prisma.jobRequest.findUnique({
-      where: { id: jobRequestId },
-    })
-
-    if (!jobRequest) {
-      return { success: false, error: 'Lead not found' }
-    }
-
-    if (jobRequest.leadStatus === 'accepted') {
-      return { success: false, error: 'Lead already accepted by another provider' }
-    }
-
-    // Check if provider viewed the lead
-    const leadView = await prisma.leadView.findUnique({
-      where: {
-        jobRequestId_providerId: {
-          jobRequestId,
-          providerId,
-        },
-      },
-    })
-
-    if (!leadView) {
-      return { success: false, error: 'Must view lead before accepting' }
-    }
-
-    // Create payment intent
-    const stripe = getStripe()
-    
-    // Get default payment method
-    const customer = await stripe.customers.retrieve(provider.stripeCustomerId)
-    const defaultPaymentMethod = (customer as any).invoice_settings?.default_payment_method
-    
-    if (!defaultPaymentMethod) {
-      return { success: false, error: 'No payment method on file. Please add a payment method in settings.' }
-    }
-    
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: pricing.acceptPrice,
-      currency: 'usd',
-      customer: provider.stripeCustomerId,
-      payment_method: defaultPaymentMethod,
-      description: `Accept ${propertyType} lead ${jobRequestId}`,
-      metadata: {
-        providerId,
-        jobRequestId,
-        propertyType,
-        type: 'accept_fee',
-      },
-      confirm: true,
-      off_session: true,
-    })
-
-    // Create LeadAcceptance record
-    await prisma.leadAcceptance.create({
-      data: {
-        jobRequestId,
-        providerId,
-        stripeChargeId: paymentIntent.id,
-        amount: pricing.acceptPrice,
-      },
-    })
-
-    // Update job request
-    await prisma.jobRequest.update({
-      where: { id: jobRequestId },
-      data: {
-        leadStatus: 'accepted',
-        acceptedBy: providerId,
-        acceptedAt: new Date(),
-        serviceProviderId: providerId,
-      },
-    })
-
-    // Update provider stats
-    await prisma.serviceProviderProfile.update({
-      where: { id: providerId },
-      data: {
-        totalLeadsAccepted: { increment: 1 },
-        totalSpent: { increment: pricing.acceptPrice },
-      },
-    })
-
-    return { success: true, chargeId: paymentIntent.id }
-  } catch (error: any) {
-    console.error('Error charging accept fee:', error)
-    return { success: false, error: error.message || 'Payment failed' }
-  }
-}
-
-/**
  * Get provider's payment method
  */
 export async function getProviderPaymentMethod(customerId: string) {
@@ -353,5 +242,5 @@ export async function createSetupIntent(
 }
 
 
-// Backward compatibility aliases
+// Backward compatibility alias (deprecated - use purchaseLead)
 export const chargeViewFee = purchaseLead
