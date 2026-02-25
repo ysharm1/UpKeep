@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import PhotoUpload from '@/app/components/PhotoUpload'
 
 export default function NewProblemPage() {
@@ -9,6 +10,7 @@ export default function NewProblemPage() {
   const [step, setStep] = useState<'describe' | 'ai-diagnosis' | 'resolved' | 'submitted'>('describe')
   const [problem, setProblem] = useState({
     category: 'hvac',
+    propertyType: 'residential',
     description: '',
     location: {
       street: '',
@@ -20,19 +22,11 @@ export default function NewProblemPage() {
   })
   const [aiResponse, setAiResponse] = useState<any>(null)
   const [loading, setLoading] = useState(false)
-  const [loadingProfile, setLoadingProfile] = useState(true)
-  const [chatMessages, setChatMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([])
+  const [chatMessages, setChatMessages] = useState<any[]>([])
   const [followUpQuestion, setFollowUpQuestion] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
   const [mounted, setMounted] = useState(false)
-  
-  // Hooks for hire step - must be at top level
-  const [selectedProvider, setSelectedProvider] = useState<any>(null)
-  const [selectedDate, setSelectedDate] = useState('')
-  const [selectedTime, setSelectedTime] = useState('')
-  const [bookingStep, setBookingStep] = useState<'browse' | 'schedule' | 'payment'>('browse')
-  const [providers, setProviders] = useState<any[]>([])
-  const [loadingProviders, setLoadingProviders] = useState(true)
+  const [partnersNotified, setPartnersNotified] = useState(0)
 
   useEffect(() => {
     setMounted(true)
@@ -58,7 +52,6 @@ export default function NewProblemPage() {
 
         if (response.ok) {
           const data = await response.json()
-          // Auto-populate address if user has one saved
           if (data.profile?.address) {
             setProblem(prev => ({
               ...prev,
@@ -73,46 +66,11 @@ export default function NewProblemPage() {
         }
       } catch (error) {
         console.error('Failed to fetch profile:', error)
-      } finally {
-        setLoadingProfile(false)
       }
     }
 
     fetchProfile()
   }, [router, mounted])
-
-  // Fetch providers when step changes to 'hire'
-  useEffect(() => {
-    if (!mounted || step !== 'submitted') return
-
-    const fetchProviders = async () => {
-      try {
-        const token = localStorage.getItem('accessToken')
-        const response = await fetch('/api/providers/nearby', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            category: problem.category,
-            location: problem.location,
-          }),
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setProviders(data.providers || [])
-        }
-      } catch (error) {
-        console.error('Failed to fetch providers:', error)
-      } finally {
-        setLoadingProviders(false)
-      }
-    }
-
-    fetchProviders()
-  }, [step, problem.category, problem.location, mounted])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -121,7 +79,7 @@ export default function NewProblemPage() {
     try {
       const token = localStorage.getItem('accessToken')
       
-      // Create job request with default coordinates (will be geocoded server-side in production)
+      // Create job request
       const response = await fetch('/api/jobs', {
         method: 'POST',
         headers: {
@@ -130,11 +88,12 @@ export default function NewProblemPage() {
         },
         body: JSON.stringify({
           category: problem.category,
+          propertyType: problem.propertyType,
           description: problem.description,
           mediaUrls: problem.mediaUrls,
           location: {
             ...problem.location,
-            latitude: 37.7749, // Default to SF coordinates for demo
+            latitude: 37.7749,
             longitude: -122.4194,
           },
         }),
@@ -147,6 +106,7 @@ export default function NewProblemPage() {
 
       const data = await response.json()
       const job = data.jobRequest
+      setPartnersNotified(data.partnersNotified || 0)
 
       // Get AI diagnosis
       const aiRes = await fetch('/api/ai/diagnose', {
@@ -165,16 +125,12 @@ export default function NewProblemPage() {
       if (aiRes.ok) {
         const diagnosis = await aiRes.json()
         setAiResponse(diagnosis)
-        
-        // Initialize chat with the initial diagnosis
         setChatMessages([
           { role: 'user', content: problem.description },
           { role: 'assistant', content: diagnosis.diagnosis || 'Here are some solutions to try...' }
         ])
-        
         setStep('ai-diagnosis')
       } else {
-        // If AI fails, still allow user to proceed
         setAiResponse({
           diySteps: [
             {
@@ -198,13 +154,9 @@ export default function NewProblemPage() {
     setStep('resolved')
   }
 
-  const handleNeedProfessional = () => {
-    setStep('submitted')
-  }
-
   const handleSkipToHire = async () => {
     if (problem.description.length < 10) {
-      alert('Please describe your problem first')
+      alert('Please describe your problem in at least 10 characters')
       return
     }
 
@@ -212,7 +164,6 @@ export default function NewProblemPage() {
     try {
       const token = localStorage.getItem('accessToken')
       
-      // Create job request with default coordinates
       const response = await fetch('/api/jobs', {
         method: 'POST',
         headers: {
@@ -221,11 +172,12 @@ export default function NewProblemPage() {
         },
         body: JSON.stringify({
           category: problem.category,
+          propertyType: problem.propertyType,
           description: problem.description,
           mediaUrls: problem.mediaUrls,
           location: {
             ...problem.location,
-            latitude: 37.7749, // Default to SF coordinates for demo
+            latitude: 37.7749,
             longitude: -122.4194,
           },
         }),
@@ -236,6 +188,8 @@ export default function NewProblemPage() {
         throw new Error(error.error || 'Failed to create problem')
       }
 
+      const data = await response.json()
+      setPartnersNotified(data.partnersNotified || 0)
       setStep('submitted')
     } catch (error: any) {
       console.error('Error:', error)
@@ -252,13 +206,11 @@ export default function NewProblemPage() {
     const userMessage = followUpQuestion
     setFollowUpQuestion('')
 
-    // Add user message to chat
     setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
 
     try {
       const token = localStorage.getItem('accessToken')
       
-      // Send follow-up question to AI
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: {
@@ -318,291 +270,44 @@ export default function NewProblemPage() {
   }
 
   if (step === 'submitted') {
-    const handleScheduleConsult = (provider: any) => {
-      setSelectedProvider(provider)
-      setBookingStep('schedule')
-    }
-
-    const handleConfirmSchedule = () => {
-      if (!selectedDate || !selectedTime) {
-        alert('Please select both date and time')
-        return
-      }
-      setBookingStep('payment')
-    }
-
-    if (bookingStep === 'payment') {
-      const handlePaymentSuccess = async (paymentMethodId: string) => {
-        try {
-          const token = localStorage.getItem('accessToken')
-          
-          // Create booking with payment
-          const response = await fetch('/api/bookings', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              providerId: selectedProvider.id,
-              scheduledDate: selectedDate,
-              scheduledTime: selectedTime,
-              consultationFee: selectedProvider.consultFee,
-              paymentMethodId: paymentMethodId,
-              problemDescription: problem.description,
-              category: problem.category,
-            }),
-          })
-
-          if (!response.ok) {
-            const error = await response.json()
-            throw new Error(error.error || 'Booking failed')
-          }
-
-          alert('Consultation booked successfully! The provider will contact you soon.')
-          router.push('/dashboard')
-        } catch (error: any) {
-          alert(`Booking failed: ${error.message}`)
-        }
-      }
-
-      const handlePaymentError = (error: string) => {
-        alert(`Payment failed: ${error}`)
-      }
-
-      return (
-        <div className="min-h-screen bg-gray-50 p-4">
-          <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-lg shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Confirm Consultation</h2>
-              
-              <div className="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
-                <h3 className="font-semibold text-blue-900 mb-2">Consultation Details</h3>
-                <p className="text-sm text-blue-800"><strong>Provider:</strong> {selectedProvider.name}</p>
-                <p className="text-sm text-blue-800"><strong>Date:</strong> {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                <p className="text-sm text-blue-800"><strong>Time:</strong> {selectedTime}</p>
-                <p className="text-sm text-blue-800 mt-2"><strong>Consultation Fee:</strong> ${selectedProvider.consultFee}</p>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <h4 className="font-semibold text-gray-900 mb-3">What happens next?</h4>
-                <ol className="space-y-2 text-sm text-gray-700">
-                  <li className="flex gap-2">
-                    <span className="font-semibold text-blue-600">1.</span>
-                    <span>Pay the ${selectedProvider.consultFee} consultation fee to secure your appointment</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="font-semibold text-blue-600">2.</span>
-                    <span>The provider will visit your property at the scheduled time</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="font-semibold text-blue-600">3.</span>
-                    <span>They'll assess the problem and provide a detailed quote with photos</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="font-semibold text-blue-600">4.</span>
-                    <span>Review and approve the quote to proceed with the repair</span>
-                  </li>
-                </ol>
-              </div>
-
-              <div className="border-t pt-6 mb-6">
-                <StripePaymentForm
-                  amount={selectedProvider.consultFee}
-                  onSuccess={handlePaymentSuccess}
-                  onError={handlePaymentError}
-                  buttonText={`Pay $${selectedProvider.consultFee} & Book Consultation`}
-                />
-              </div>
-                
-              <button
-                onClick={() => setBookingStep('schedule')}
-                className="w-full px-6 py-2 text-gray-600 hover:text-gray-800"
-              >
-                ← Back to Schedule
-              </button>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    if (bookingStep === 'schedule') {
-      return (
-        <div className="min-h-screen bg-gray-50 p-4">
-          <div className="max-w-3xl mx-auto">
-            <div className="bg-white rounded-lg shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Schedule Consultation</h2>
-              <p className="text-gray-600 mb-6">with {selectedProvider.name}</p>
-
-              <div className="grid md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Select Date</h3>
-                  <div className="space-y-2">
-                    {selectedProvider.availability.map((date: string) => (
-                      <button
-                        key={date}
-                        onClick={() => setSelectedDate(date)}
-                        className={`w-full px-4 py-3 rounded-lg border-2 text-left transition-colors ${
-                          selectedDate === date
-                            ? 'border-blue-600 bg-blue-50 text-blue-900'
-                            : 'border-gray-200 hover:border-blue-300'
-                        }`}
-                      >
-                        <div className="font-medium">
-                          {new Date(date).toLocaleDateString('en-US', { weekday: 'long' })}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Select Time</h3>
-                  <div className="space-y-2">
-                    {selectedProvider.timeSlots.map((time: string) => (
-                      <button
-                        key={time}
-                        onClick={() => setSelectedTime(time)}
-                        disabled={!selectedDate}
-                        className={`w-full px-4 py-3 rounded-lg border-2 transition-colors ${
-                          selectedTime === time
-                            ? 'border-blue-600 bg-blue-50 text-blue-900'
-                            : 'border-gray-200 hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed'
-                        }`}
-                      >
-                        {time}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700">Consultation Fee:</span>
-                  <span className="text-xl font-bold text-gray-900">${selectedProvider.consultFee}</span>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  This fee covers the provider's visit and assessment. You'll receive a detailed quote before any work begins.
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setBookingStep('browse')}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  ← Back
-                </button>
-                <button
-                  onClick={handleConfirmSchedule}
-                  disabled={!selectedDate || !selectedTime}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  Continue to Payment →
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Find Local Professionals</h2>
-            <p className="text-gray-600 mb-6">
-              Schedule a consultation with verified {problem.category} professionals in your area.
-            </p>
-
-            <div className="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
-              <p className="text-sm text-blue-800">
-                <strong>Your Problem:</strong> {problem.description.substring(0, 150)}...
-              </p>
-              <p className="text-sm text-blue-800 mt-2">
-                <strong>Location:</strong> {problem.location.city}, {problem.location.state} {problem.location.zipCode}
-              </p>
-            </div>
-
-            {loadingProviders ? (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p className="text-gray-600 mt-4">Finding providers in your area...</p>
-              </div>
-            ) : providers.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <p className="text-gray-600 mb-2">No providers available in your area yet.</p>
-                <p className="text-sm text-gray-500">We're working on expanding our network!</p>
-                <button
-                  onClick={() => router.push('/dashboard')}
-                  className="mt-4 px-6 py-2 text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  ← Back to Dashboard
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4 mb-6">
-                  <h3 className="font-semibold text-lg text-gray-900">Available Professionals:</h3>
-                  
-                  {providers.map((provider) => (
-                <div key={provider.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-xl text-gray-900">{provider.name}</h4>
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="flex text-yellow-400 text-lg">
-                          {'★'.repeat(Math.floor(provider.rating))}
-                          {provider.rating % 1 !== 0 && '☆'}
-                        </div>
-                        <span className="text-sm text-gray-600">{provider.rating} ({provider.reviews} reviews)</span>
-                        <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded font-medium">Verified</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-blue-600">${provider.consultFee}</div>
-                      <div className="text-xs text-gray-500">consultation fee</div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Specialties:</span>
-                      <span className="ml-2 font-medium text-gray-900">{provider.specialties.join(', ')}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Distance:</span>
-                      <span className="ml-2 font-medium text-gray-900">{provider.distance} miles away</span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleScheduleConsult(provider)}
-                    className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors"
-                  >
-                    Schedule Consultation →
-                  </button>
-                </div>
-              ))}
-                </div>
-
-                <div className="border-t pt-6">
-                  <button
-                    onClick={() => router.push('/dashboard')}
-                    className="text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    ← Back to Dashboard
-                  </button>
-                </div>
-              </>
-            )}
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
           </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Pros Notified!</h2>
+          <p className="text-gray-600 mb-4">
+            {partnersNotified} local {problem.category.toUpperCase()} professionals have been notified via SMS.
+          </p>
+          <div className="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6 text-left">
+            <h3 className="font-semibold text-blue-900 mb-2">What happens next:</h3>
+            <ul className="text-sm text-blue-800 space-y-2">
+              <li className="flex gap-2">
+                <span>1.</span>
+                <span>Pros review your problem and decide if they want to compete</span>
+              </li>
+              <li className="flex gap-2">
+                <span>2.</span>
+                <span>They'll call or text you directly to discuss your needs</span>
+              </li>
+              <li className="flex gap-2">
+                <span>3.</span>
+                <span>Compare quotes and choose the best pro for your job</span>
+              </li>
+            </ul>
+          </div>
+          <p className="text-sm text-gray-500 mb-6">
+            Expect calls or texts from local professionals soon!
+          </p>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Back to Dashboard
+          </button>
         </div>
       </div>
     )
@@ -617,7 +322,10 @@ export default function NewProblemPage() {
             
             <div className="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
               <p className="text-sm text-blue-800">
-                Our AI has analyzed your problem. Try these solutions first - they might save you time and money!
+                <strong>Good news!</strong> {partnersNotified} local pros have been notified and will contact you soon.
+              </p>
+              <p className="text-sm text-blue-800 mt-2">
+                Meanwhile, try these AI-suggested solutions - they might save you time and money!
               </p>
             </div>
 
@@ -652,11 +360,9 @@ export default function NewProblemPage() {
               </div>
             )}
 
-            {/* Chat Interface */}
             <div className="border-t pt-6 mt-6">
               <h3 className="font-semibold text-gray-900 mb-4">💬 Have questions? Ask the AI!</h3>
               
-              {/* Chat Messages */}
               <div className="bg-gray-50 rounded-lg p-4 mb-4 max-h-96 overflow-y-auto space-y-3">
                 {chatMessages.map((msg, index) => (
                   <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -682,13 +388,12 @@ export default function NewProblemPage() {
                 )}
               </div>
 
-              {/* Chat Input */}
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={followUpQuestion}
                   onChange={(e) => setFollowUpQuestion(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendFollowUp()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendFollowUp()}
                   placeholder="Ask a follow-up question..."
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   disabled={sendingMessage}
@@ -713,12 +418,15 @@ export default function NewProblemPage() {
                   ✓ Yes, Problem Solved!
                 </button>
                 <button
-                  onClick={handleNeedProfessional}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                  onClick={() => router.push('/dashboard')}
+                  className="flex-1 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium"
                 >
-                  → I Need Professional Help
+                  Back to Dashboard
                 </button>
               </div>
+              <p className="text-sm text-gray-500 text-center mt-3">
+                Remember: {partnersNotified} pros will contact you soon!
+              </p>
             </div>
           </div>
         </div>
@@ -728,14 +436,42 @@ export default function NewProblemPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
+      {/* Navigation */}
+      <nav className="max-w-2xl mx-auto mb-4">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Dashboard
+        </Link>
+      </nav>
+
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Describe Your Problem</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Submit Your Home Repair Problem</h1>
           <p className="text-gray-600 mb-8">
-            Tell us what's wrong. You can try our AI diagnosis first, or skip straight to hiring a local professional.
+            Tell us what's wrong and we'll connect you with local professionals - completely FREE for homeowners!
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Property Type
+              </label>
+              <select
+                value={problem.propertyType}
+                onChange={(e) => setProblem({ ...problem, propertyType: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="residential">Residential (Single Home)</option>
+                <option value="multi_family">Multi-Family / Property Manager</option>
+                <option value="commercial">Commercial Building</option>
+              </select>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Problem Category
@@ -766,7 +502,7 @@ export default function NewProblemPage() {
                 minLength={10}
               />
               <p className="text-sm text-gray-500 mt-1">
-                Minimum 10 characters. The more details, the better we can help!
+                Minimum 10 characters. The more details, the better!
               </p>
             </div>
 
@@ -822,7 +558,7 @@ export default function NewProblemPage() {
             </div>
 
             <div className="border-t pt-6">
-              <p className="text-sm font-medium text-gray-700 mb-4">What would you like to do?</p>
+              <p className="text-sm font-medium text-gray-700 mb-4">Choose your path:</p>
               <div className="grid grid-cols-2 gap-4">
                 <button
                   type="submit"
@@ -847,15 +583,18 @@ export default function NewProblemPage() {
                 >
                   <div className="flex items-center gap-3">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                     <div>
-                      <div className="font-semibold">Hire Professional</div>
-                      <div className="text-xs opacity-90">Skip to local experts</div>
+                      <div className="font-semibold">Get Quotes from Professionals</div>
+                      <div className="text-xs opacity-90">Skip AI, notify pros now</div>
                     </div>
                   </div>
                 </button>
               </div>
+              <p className="text-xs text-gray-500 text-center mt-4">
+                Both options notify local pros. AI diagnosis is optional and might help you fix it yourself!
+              </p>
             </div>
           </form>
         </div>
