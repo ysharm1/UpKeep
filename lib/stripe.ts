@@ -2,13 +2,19 @@ import Stripe from 'stripe'
 import { prisma } from './prisma'
 import { getLeadPricing, PropertyType } from './pricing'
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not defined')
-}
+let stripeInstance: Stripe | null = null
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-12-18.acacia',
-})
+function getStripe(): Stripe {
+  if (!stripeInstance) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY is not defined')
+    }
+    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2024-12-18.acacia',
+    })
+  }
+  return stripeInstance
+}
 
 /**
  * Create a Stripe customer for a service provider
@@ -19,6 +25,7 @@ export async function createStripeCustomer(
   businessName: string
 ): Promise<string> {
   try {
+    const stripe = getStripe()
     const customer = await stripe.customers.create({
       email,
       name: businessName,
@@ -86,6 +93,7 @@ export async function chargeViewFee(
     }
 
     // Create payment intent
+    const stripe = getStripe()
     const paymentIntent = await stripe.paymentIntents.create({
       amount: pricing.viewPrice,
       currency: 'usd',
@@ -187,6 +195,7 @@ export async function chargeAcceptFee(
     }
 
     // Create payment intent
+    const stripe = getStripe()
     const paymentIntent = await stripe.paymentIntents.create({
       amount: pricing.acceptPrice,
       currency: 'usd',
@@ -247,6 +256,7 @@ export async function chargeAcceptFee(
  */
 export async function getProviderPaymentMethod(customerId: string) {
   try {
+    const stripe = getStripe()
     const paymentMethods = await stripe.paymentMethods.list({
       customer: customerId,
       type: 'card',
@@ -267,6 +277,7 @@ export async function attachPaymentMethod(
   paymentMethodId: string
 ) {
   try {
+    const stripe = getStripe()
     await stripe.paymentMethods.attach(paymentMethodId, {
       customer: customerId,
     })
