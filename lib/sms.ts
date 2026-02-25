@@ -57,11 +57,12 @@ export async function sendNewLeadNotification(
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   const leadUrl = `${appUrl}/provider/leads/${leadId}`
 
-  const message = `🔥 New ${category.toUpperCase()} lead in ${location}!
+  const message = `🔥 NEW ${category.toUpperCase()} LEAD - ${location}
+⏰ Just posted - Act fast!
+👥 2 other pros notified
+💰 $15 to view | First to accept wins!
 
-Pay $15 to view details & compete with 2 others.
-
-View lead: ${leadUrl}
+View NOW: ${leadUrl}
 
 - UpKeep`
 
