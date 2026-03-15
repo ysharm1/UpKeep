@@ -22,6 +22,13 @@ export default function ProviderSettingsPage() {
   const [businessName, setBusinessName] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [licenseNumber, setLicenseNumber] = useState('')
+  const [serviceAddress, setServiceAddress] = useState({
+    street: '',
+    city: '',
+    state: '',
+    zipCode: '',
+  })
+  const [serviceRadius, setServiceRadius] = useState(25)
 
   const availableSpecialties = ['hvac', 'plumbing', 'electrical', 'general_maintenance']
 
@@ -59,6 +66,9 @@ export default function ProviderSettingsPage() {
             if (profile.licenseNumber) {
               setLicenseNumber(profile.licenseNumber)
             }
+            if (profile.serviceRadius) {
+              setServiceRadius(profile.serviceRadius)
+            }
           }
         }
       } catch (err) {
@@ -89,11 +99,13 @@ export default function ProviderSettingsPage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           specialties,
           businessName,
           phoneNumber,
-          licenseNumber
+          licenseNumber,
+          serviceRadius,
+          serviceAddress: serviceAddress.city ? serviceAddress : undefined,
         })
       })
 
@@ -239,6 +251,66 @@ export default function ProviderSettingsPage() {
                     </div>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Service Area */}
+            <div className="border-b pb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Service Area</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Set your business location and service radius. You'll only see leads within this area.
+              </p>
+
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Business Address / Street"
+                  value={serviceAddress.street}
+                  onChange={(e) => setServiceAddress({ ...serviceAddress, street: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    placeholder="City"
+                    value={serviceAddress.city}
+                    onChange={(e) => setServiceAddress({ ...serviceAddress, city: e.target.value })}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="text"
+                    placeholder="State"
+                    value={serviceAddress.state}
+                    onChange={(e) => setServiceAddress({ ...serviceAddress, state: e.target.value })}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="ZIP Code"
+                  value={serviceAddress.zipCode}
+                  onChange={(e) => setServiceAddress({ ...serviceAddress, zipCode: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Service Radius: {serviceRadius} miles
+                  </label>
+                  <input
+                    type="range"
+                    min="5"
+                    max="100"
+                    step="5"
+                    value={serviceRadius}
+                    onChange={(e) => setServiceRadius(Number(e.target.value))}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>5 mi</span>
+                    <span>50 mi</span>
+                    <span>100 mi</span>
+                  </div>
+                </div>
               </div>
             </div>
 

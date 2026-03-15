@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { authService } from '@/lib/auth/auth.service'
 import { purchaseLead } from '@/lib/stripe'
 import { prisma } from '@/lib/prisma'
-import { sendLeadPurchaseConfirmation } from '@/lib/sms'
+import { sendLeadPurchaseConfirmation, sendHomeownerLeadAlert } from '@/lib/sms'
 
 export async function POST(
   request: NextRequest,
@@ -56,13 +56,23 @@ export async function POST(
       return NextResponse.json({ error: result.error }, { status: 400 })
     }
 
-    // Send SMS confirmation
+    // Send SMS confirmation to provider
     await sendLeadPurchaseConfirmation(
       user.serviceProviderProfile!.phoneNumber,
       user.serviceProviderProfile!.businessName,
       `${lead.homeowner.firstName} ${lead.homeowner.lastName}`,
       lead.homeowner.phoneNumber
     )
+
+    // Notify the homeowner that a pro is interested
+    if (lead.homeowner.phoneNumber) {
+      await sendHomeownerLeadAlert(
+        lead.homeowner.phoneNumber,
+        lead.homeowner.firstName,
+        lead.category,
+        user.serviceProviderProfile!.businessName
+      )
+    }
 
     // Return full lead details
     return NextResponse.json({

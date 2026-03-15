@@ -2,6 +2,7 @@ import { UserRole, User, HomeownerProfile, ServiceProviderProfile } from '@prism
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { prisma } from '../prisma'
+import { geocodeAddress } from '../geocoding'
 
 export type UserWithProfiles = User & {
   homeownerProfile: HomeownerProfile | null
@@ -64,6 +65,12 @@ export class AuthService {
     // Hash password with bcrypt (salt rounds: 12)
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS)
 
+    // Geocode address if provided
+    let geocoded: { latitude: number; longitude: number } | null = null
+    if (address) {
+      geocoded = await geocodeAddress(address)
+    }
+
     // Create address if provided (for homeowners)
     let addressId: string | undefined
     if (role === UserRole.homeowner && address) {
@@ -73,8 +80,8 @@ export class AuthService {
           city: address.city,
           state: address.state,
           zipCode: address.zipCode,
-          latitude: 37.7749, // Default coordinates, will be geocoded in production
-          longitude: -122.4194,
+          latitude: geocoded?.latitude || 0,
+          longitude: geocoded?.longitude || 0,
         },
       })
       addressId = createdAddress.id
@@ -105,6 +112,11 @@ export class AuthService {
               specialties: (profileData?.specialties as any[]) || [],
               licenseNumber: '',
               verified: false,
+              serviceRadius: 25,
+              ...(geocoded && {
+                latitude: geocoded.latitude,
+                longitude: geocoded.longitude,
+              }),
             },
           },
         }),

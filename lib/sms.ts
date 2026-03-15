@@ -10,7 +10,7 @@ let twilioClient: ReturnType<typeof twilio> | null = null
 if (accountSid && authToken) {
   twilioClient = twilio(accountSid, authToken)
 } else {
-  console.warn('⚠️ Twilio credentials not configured. SMS will be logged to console.')
+  console.warn('Twilio credentials not configured. SMS will be logged to console.')
 }
 
 export interface SMSOptions {
@@ -22,9 +22,8 @@ export interface SMSOptions {
  * Send SMS message
  */
 export async function sendSMS(options: SMSOptions): Promise<boolean> {
-  // If Twilio not configured, log to console
   if (!twilioClient || !fromNumber) {
-    console.log('📱 SMS would be sent:')
+    console.log('SMS would be sent:')
     console.log('To:', options.to)
     console.log('Message:', options.message)
     return true
@@ -37,10 +36,10 @@ export async function sendSMS(options: SMSOptions): Promise<boolean> {
       to: options.to,
     })
 
-    console.log(`✅ SMS sent: ${message.sid}`)
+    console.log(`SMS sent: ${message.sid}`)
     return true
   } catch (error) {
-    console.error('❌ SMS error:', error)
+    console.error('SMS error:', error)
     return false
   }
 }
@@ -58,9 +57,9 @@ export async function sendNewLeadNotification(
   const appUrl = getAppUrl()
   const leadUrl = `${appUrl}/provider/leads/${leadId}`
 
-  const message = `🔥 NEW ${category.toUpperCase()} LEAD - ${location}
-⏰ Just posted - Act fast!
-💰 Starting at $40 to purchase
+  const message = `NEW ${category.toUpperCase()} LEAD - ${location}
+Just posted - Act fast!
+Starting at $40 to purchase
 
 View NOW: ${leadUrl}
 
@@ -73,7 +72,7 @@ View NOW: ${leadUrl}
 }
 
 /**
- * Send lead purchase confirmation (new shared lead model)
+ * Send lead purchase confirmation to vendor
  */
 export async function sendLeadPurchaseConfirmation(
   vendorPhone: string,
@@ -81,7 +80,7 @@ export async function sendLeadPurchaseConfirmation(
   customerName: string,
   customerPhone: string
 ): Promise<boolean> {
-  const message = `✅ Lead purchased!
+  const message = `Lead purchased!
 
 Customer: ${customerName}
 Phone: ${customerPhone}
@@ -92,6 +91,27 @@ Call them now to quote the job!
 
   return sendSMS({
     to: vendorPhone,
+    message,
+  })
+}
+
+/**
+ * Notify homeowner that a pro is interested in their job
+ */
+export async function sendHomeownerLeadAlert(
+  homeownerPhone: string,
+  homeownerName: string,
+  category: string,
+  providerBusinessName: string
+): Promise<boolean> {
+  const message = `Hi ${homeownerName}! A ${category} professional (${providerBusinessName}) is interested in your job and will be reaching out to you soon.
+
+Expect a call or text shortly!
+
+- UpKeep`
+
+  return sendSMS({
+    to: homeownerPhone,
     message,
   })
 }

@@ -140,11 +140,75 @@ export default function Home() {
         </div>
       </main>
 
-      <footer className="bg-gray-50 mt-24">
+      {/* For Service Providers */}
+      <section className="bg-gray-900 text-white py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h3 className="text-3xl font-bold mb-4">Are You a Service Professional?</h3>
+              <p className="text-gray-300 mb-6 text-lg">
+                Get qualified leads delivered to your phone. Only pay for leads you want — no subscriptions, no contracts.
+              </p>
+              <ul className="space-y-3 text-gray-300 mb-8">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-400 mt-1">&#10003;</span>
+                  <span>SMS alerts for new leads in your area</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-400 mt-1">&#10003;</span>
+                  <span>Pay per lead — $40 residential, $60 multi-family, $80 commercial</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-400 mt-1">&#10003;</span>
+                  <span>Full customer contact info — call them directly</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-400 mt-1">&#10003;</span>
+                  <span>No monthly fees or long-term commitments</span>
+                </li>
+              </ul>
+              <Link
+                href="/auth/register?role=service_provider"
+                className="px-8 py-4 bg-blue-600 text-white text-lg rounded-lg hover:bg-blue-700 font-semibold inline-block"
+              >
+                Join as a Pro
+              </Link>
+            </div>
+            <div className="bg-gray-800 rounded-xl p-8">
+              <h4 className="text-xl font-semibold mb-4">How Providers Earn</h4>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="bg-blue-600 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-bold">1</div>
+                  <div>
+                    <p className="font-medium">Set up your profile</p>
+                    <p className="text-gray-400 text-sm">Choose your specialties and service area</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="bg-blue-600 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-bold">2</div>
+                  <div>
+                    <p className="font-medium">Get notified of new leads</p>
+                    <p className="text-gray-400 text-sm">Instant SMS when a homeowner needs help</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="bg-blue-600 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-bold">3</div>
+                  <div>
+                    <p className="font-medium">Purchase &amp; contact the customer</p>
+                    <p className="text-gray-400 text-sm">Pay once, get full details, close the deal</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center text-gray-600">
-            <p>&copy; 2024 UpKeep. All rights reserved.</p>
-            <p className="mt-2">HVAC • Plumbing • Electrical • Home Maintenance</p>
+            <p>&copy; {new Date().getFullYear()} UpKeep. All rights reserved.</p>
+            <p className="mt-2">HVAC &bull; Plumbing &bull; Electrical &bull; Home Maintenance</p>
           </div>
         </div>
       </footer>

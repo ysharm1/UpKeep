@@ -3,10 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jobService } from '@/lib/jobs/job.service'
 import { authService } from '@/lib/auth/auth.service'
 import { ServiceCategory } from '@prisma/client'
-import { findPartnersNearLocation } from '@/lib/partners'
 import { sendNewLeadNotification } from '@/lib/sms'
 import { prisma } from '@/lib/prisma'
-import { geocodeAddress } from '@/lib/geocoding'
+import { geocodeAddress, calculateDistance } from '@/lib/geocoding'
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,47 +63,48 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // PAY-TO-PLAY MODEL: Send SMS to partners within service area
-    const partners = coordinates
-      ? findPartnersNearLocation(category, coordinates)
-      : [] // If geocoding failed, don't notify anyone (or fallback to all partners)
-    
-    if (partners.length > 0) {
-      console.log(`📢 Broadcasting lead to ${partners.length} nearby partners via SMS`)
-      
-      for (const partner of partners) {
-        // Find provider account for this partner
-        const providerProfile = await prisma.serviceProviderProfile.findFirst({
-          where: {
-            user: {
-              email: partner.email,
-            },
-          },
-        })
+    // Find registered providers matching this category from the database
+    const matchingProviders = await prisma.serviceProviderProfile.findMany({
+      where: {
+        isActive: true,
+        specialties: { has: category as ServiceCategory },
+        phoneNumber: { not: '' },
+      },
+      include: { user: true },
+    })
 
-        if (providerProfile) {
-          // Send SMS notification
-          await sendNewLeadNotification(
-            partner.phone,
-            partner.name,
-            category,
-            `${location.city}, ${location.state}`,
-            jobRequest.id
+    // Filter by geographic proximity if we have job coordinates
+    const nearbyProviders = coordinates
+      ? matchingProviders.filter((provider) => {
+          // If provider hasn't set their location, include them (they may be new)
+          if (!provider.latitude || !provider.longitude) return true
+          const distance = calculateDistance(
+            { latitude: provider.latitude, longitude: provider.longitude },
+            coordinates
           )
+          return distance <= (provider.serviceRadius || 25)
+        })
+      : matchingProviders
 
-          console.log(`✅ SMS sent to partner: ${partner.name}`)
-        } else {
-          console.warn(`⚠️ Partner ${partner.name} doesn't have a provider account yet`)
-        }
-      }
-    } else {
-      console.warn(`⚠️ No partners found within service area for category: ${category}`)
+    // Send SMS notifications to nearby providers
+    let notifiedCount = 0
+    for (const provider of nearbyProviders) {
+      const sent = await sendNewLeadNotification(
+        provider.phoneNumber,
+        provider.businessName,
+        category,
+        `${location.city}, ${location.state}`,
+        jobRequest.id
+      )
+      if (sent) notifiedCount++
     }
+
+    console.log(`Notified ${notifiedCount} providers for ${category} lead in ${location.city}, ${location.state}`)
 
     return NextResponse.json({
       message: 'Job request created successfully',
       jobRequest,
-      partnersNotified: partners.length,
+      partnersNotified: notifiedCount,
     })
   } catch (error: any) {
     console.error('Create job error:', error)

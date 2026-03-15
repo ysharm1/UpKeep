@@ -58,7 +58,7 @@ function RegisterForm() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/signup', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -266,6 +266,55 @@ function RegisterForm() {
                     placeholder="+1 (555) 123-4567"
                   />
                   <p className="mt-1 text-xs text-gray-500">This is how we send you new lead alerts via SMS</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Service Area</label>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Business Address / Street"
+                      required
+                      value={formData.address.street}
+                      onChange={(e) =>
+                        setFormData({ ...formData, address: { ...formData.address, street: e.target.value } })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        placeholder="City"
+                        required
+                        value={formData.address.city}
+                        onChange={(e) =>
+                          setFormData({ ...formData, address: { ...formData.address, city: e.target.value } })
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <input
+                        type="text"
+                        placeholder="State"
+                        required
+                        value={formData.address.state}
+                        onChange={(e) =>
+                          setFormData({ ...formData, address: { ...formData.address, state: e.target.value } })
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="ZIP Code"
+                      required
+                      value={formData.address.zipCode}
+                      onChange={(e) =>
+                        setFormData({ ...formData, address: { ...formData.address, zipCode: e.target.value } })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">We use this to show you leads in your area (default 25 mile radius)</p>
                 </div>
 
                 <div>

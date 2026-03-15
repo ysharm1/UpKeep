@@ -240,7 +240,3 @@ export async function createSetupIntent(
     return { success: false, error: error.message || 'Failed to create setup intent' }
   }
 }
-
-
-// Backward compatibility alias (deprecated - use purchaseLead)
-export const chargeViewFee = purchaseLead

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { authService } from '@/lib/auth/auth.service'
 import { prisma } from '@/lib/prisma'
+import { calculateDistance } from '@/lib/geocoding'
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     const providerId = user.serviceProviderProfile!.id
 
-    // Get provider's specialties
+    // Get provider's specialties and location
     const provider = await prisma.serviceProviderProfile.findUnique({
       where: { id: providerId },
     })
@@ -30,6 +31,9 @@ export async function GET(request: NextRequest) {
     if (!provider) {
       return NextResponse.json({ error: 'Provider not found' }, { status: 404 })
     }
+
+    const providerHasLocation = provider.latitude && provider.longitude
+    const serviceRadius = provider.serviceRadius || 25
 
     // Get available leads in provider's categories
     const availableLeads = await prisma.jobRequest.findMany({
@@ -40,7 +44,7 @@ export async function GET(request: NextRequest) {
         leadStatus: {
           in: ['available', 'viewed'],
         },
-        // Exclude leads this provider already viewed
+        // Exclude leads this provider already purchased
         leadViews: {
           none: {
             providerId,
@@ -54,19 +58,28 @@ export async function GET(request: NextRequest) {
       orderBy: {
         createdAt: 'desc',
       },
-      take: 50,
+      take: 100,
     })
 
-    // Get leads this provider has viewed
+    // Filter by geographic distance if provider has location set
+    const filteredLeads = providerHasLocation
+      ? availableLeads.filter((lead) => {
+          if (!lead.latitude || !lead.longitude) return true // Show leads without coords
+          const distance = calculateDistance(
+            { latitude: provider.latitude!, longitude: provider.longitude! },
+            { latitude: lead.latitude, longitude: lead.longitude }
+          )
+          return distance <= serviceRadius
+        })
+      : availableLeads
+
+    // Get leads this provider has purchased
     const viewedLeads = await prisma.jobRequest.findMany({
       where: {
         leadViews: {
           some: {
             providerId,
           },
-        },
-        leadStatus: {
-          not: 'accepted',
         },
       },
       include: {
@@ -84,32 +97,13 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // Get leads this provider won
-    const wonLeads = await prisma.jobRequest.findMany({
-      where: {
-        acceptedBy: providerId,
-      },
-      include: {
-        location: true,
-        homeowner: {
-          include: {
-            user: true,
-          },
-        },
-      },
-      orderBy: {
-        acceptedAt: 'desc',
-      },
-      take: 20,
-    })
-
     return NextResponse.json({
-      available: availableLeads.map((lead) => ({
+      available: filteredLeads.map((lead) => ({
         id: lead.id,
         category: lead.category,
         propertyType: lead.propertyType,
         location: `${lead.location.city}, ${lead.location.state}`,
-        preview: lead.description.substring(0, 100) + '...',
+        preview: lead.description.substring(0, 100) + (lead.description.length > 100 ? '...' : ''),
         createdAt: lead.createdAt,
         viewCount: lead.viewCount,
         competitorCount: lead.leadViews.length,
@@ -134,18 +128,6 @@ export async function GET(request: NextRequest) {
         createdAt: lead.createdAt,
         viewCount: lead.viewCount,
         leadStatus: lead.leadStatus,
-      })),
-      won: wonLeads.map((lead) => ({
-        id: lead.id,
-        category: lead.category,
-        propertyType: lead.propertyType,
-        location: `${lead.location.city}, ${lead.location.state}`,
-        customer: {
-          name: `${lead.homeowner.firstName} ${lead.homeowner.lastName}`,
-          phone: lead.homeowner.phoneNumber,
-          email: lead.homeowner.user.email,
-        },
-        acceptedAt: lead.acceptedAt,
       })),
     })
   } catch (error: any) {

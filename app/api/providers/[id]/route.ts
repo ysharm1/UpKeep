@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { authService } from '@/lib/auth/auth.service'
 import { prisma } from '@/lib/prisma'
+import { geocodeAddress } from '@/lib/geocoding'
 
 export async function PUT(
   request: NextRequest,
@@ -23,7 +24,7 @@ export async function PUT(
       )
     }
 
-    const { specialties, businessName, phoneNumber, licenseNumber } = await request.json()
+    const { specialties, businessName, phoneNumber, licenseNumber, serviceRadius, serviceAddress } = await request.json()
 
     // Validate specialties if provided
     const validSpecialties = ['hvac', 'plumbing', 'electrical', 'general_maintenance']
@@ -46,12 +47,22 @@ export async function PUT(
     if (businessName !== undefined) updateData.businessName = businessName
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber
     if (licenseNumber !== undefined) updateData.licenseNumber = licenseNumber
+    if (serviceRadius !== undefined) updateData.serviceRadius = serviceRadius
+
+    // Geocode service address if provided
+    if (serviceAddress && serviceAddress.city) {
+      const coords = await geocodeAddress(serviceAddress)
+      if (coords) {
+        updateData.latitude = coords.latitude
+        updateData.longitude = coords.longitude
+      }
+    }
 
     // Update provider profile
     const updatedProfile = await prisma.serviceProviderProfile.update({
       where: {
         id: params.id,
-        userId: user.id, // Ensure provider can only update their own profile
+        userId: user.id,
       },
       data: updateData,
     })
