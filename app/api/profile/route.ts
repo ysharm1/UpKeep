@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
         id: user.id,
         email: user.email,
         role: user.role,
+        phoneVerified: user.phoneVerified,
       },
       profile,
     })

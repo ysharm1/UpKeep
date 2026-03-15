@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+
 import Link from 'next/link'
 
 interface Lead {
@@ -15,7 +15,7 @@ interface Lead {
   competitorCount: number
 }
 
-interface ViewedLead {
+interface PurchasedLead {
   id: string
   category: string
   propertyType: string
@@ -34,29 +34,13 @@ interface ViewedLead {
   photos: string[]
   createdAt: string
   viewCount: number
-  leadStatus: string
-}
-
-interface WonLead {
-  id: string
-  category: string
-  propertyType: string
-  location: string
-  customer: {
-    name: string
-    phone: string
-    email: string
-  }
-  acceptedAt: string
 }
 
 export default function LeadsPage() {
-  const router = useRouter()
   const [available, setAvailable] = useState<Lead[]>([])
-  const [viewed, setViewed] = useState<ViewedLead[]>([])
-  const [won, setWon] = useState<WonLead[]>([])
+  const [purchased, setPurchased] = useState<PurchasedLead[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'available' | 'viewing' | 'won'>('available')
+  const [activeTab, setActiveTab] = useState<'available' | 'purchased'>('available')
 
   const getPrice = (propertyType: string) => {
     if (propertyType === 'commercial') return '$80'
@@ -85,9 +69,8 @@ export default function LeadsPage() {
 
       if (response.ok) {
         const data = await response.json()
-        setAvailable(data.available)
-        setViewed(data.viewed)
-        setWon(data.won)
+        setAvailable(data.available || [])
+        setPurchased(data.viewed || [])
       }
     } catch (error) {
       console.error('Error fetching leads:', error)
@@ -130,16 +113,10 @@ export default function LeadsPage() {
               UpKeep Pro
             </Link>
             <div className="flex gap-4">
-              <Link
-                href="/provider/dashboard"
-                className="px-4 py-2 text-gray-700 hover:text-gray-900"
-              >
+              <Link href="/provider/dashboard" className="px-4 py-2 text-gray-700 hover:text-gray-900">
                 Dashboard
               </Link>
-              <Link
-                href="/provider/settings"
-                className="px-4 py-2 text-gray-700 hover:text-gray-900"
-              >
+              <Link href="/provider/settings" className="px-4 py-2 text-gray-700 hover:text-gray-900">
                 Settings
               </Link>
             </div>
@@ -151,7 +128,7 @@ export default function LeadsPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Lead Marketplace</h1>
           <p className="mt-2 text-gray-600">
-            View available leads, track your progress, and manage won jobs
+            Browse available leads and contact customers you've purchased
           </p>
         </div>
 
@@ -169,24 +146,14 @@ export default function LeadsPage() {
               Available ({available.length})
             </button>
             <button
-              onClick={() => setActiveTab('viewing')}
+              onClick={() => setActiveTab('purchased')}
               className={`${
-                activeTab === 'viewing'
+                activeTab === 'purchased'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             >
-              Purchased ({viewed.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('won')}
-              className={`${
-                activeTab === 'won'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-            >
-              Purchased ({won.length})
+              Purchased ({purchased.length})
             </button>
           </nav>
         </div>
@@ -198,6 +165,12 @@ export default function LeadsPage() {
               <div className="bg-white rounded-lg shadow p-8 text-center">
                 <p className="text-gray-500">No available leads at the moment</p>
                 <p className="text-sm text-gray-400 mt-2">Check back soon for new opportunities</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Make sure your specialties are configured in{' '}
+                  <Link href="/provider/settings" className="text-blue-600 hover:text-blue-700">
+                    Settings
+                  </Link>
+                </p>
               </div>
             ) : (
               available.map((lead) => (
@@ -222,7 +195,7 @@ export default function LeadsPage() {
                       </div>
                       <p className="text-gray-700 mb-3">{lead.preview}</p>
                       <div className="flex items-center gap-4 text-sm text-gray-500">
-                        <span>👁️ {lead.viewCount} views</span>
+                        <span>👁️ {lead.viewCount} purchased</span>
                         <span>🔥 {lead.competitorCount} competing</span>
                       </div>
                     </div>
@@ -238,16 +211,24 @@ export default function LeadsPage() {
           </div>
         )}
 
-        {/* Viewing Leads */}
-        {activeTab === 'viewing' && (
+        {/* Purchased Leads */}
+        {activeTab === 'purchased' && (
           <div className="space-y-4">
-            {viewed.length === 0 ? (
+            {purchased.length === 0 ? (
               <div className="bg-white rounded-lg shadow p-8 text-center">
                 <p className="text-gray-500">You haven't purchased any leads yet</p>
-                <p className="text-sm text-gray-400 mt-2">Purchase available leads to get customer contact info</p>
+                <p className="text-sm text-gray-400 mt-2">
+                  Purchase available leads to get full customer contact details
+                </p>
+                <button
+                  onClick={() => setActiveTab('available')}
+                  className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                >
+                  Browse Available Leads
+                </button>
               </div>
             ) : (
-              viewed.map((lead) => (
+              purchased.map((lead) => (
                 <div key={lead.id} className="bg-white rounded-lg shadow p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -255,22 +236,31 @@ export default function LeadsPage() {
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
                           {lead.category.toUpperCase()}
                         </span>
+                        {lead.propertyType !== 'residential' && (
+                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                            {getPropertyTypeLabel(lead.propertyType)}
+                          </span>
+                        )}
                         <span className="text-sm text-gray-500">
                           {lead.location.city}, {lead.location.state}
                         </span>
+                        <span className="text-sm text-gray-400">{formatDate(lead.createdAt)}</span>
                       </div>
                       <p className="text-gray-700 mb-2">{lead.description}</p>
+                      <p className="text-xs text-gray-500">
+                        📍 {lead.location.street}, {lead.location.city}, {lead.location.state} {lead.location.zipCode}
+                      </p>
                     </div>
                   </div>
                   <div className="border-t pt-4">
-                    <h4 className="font-semibold text-gray-900 mb-2">Customer Details:</h4>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
+                    <h4 className="font-semibold text-gray-900 mb-3">Customer Details:</h4>
+                    <div className="grid grid-cols-3 gap-4 text-sm mb-4">
                       <div>
-                        <span className="text-gray-500">Name:</span>
+                        <span className="text-gray-500">Name</span>
                         <p className="font-medium">{lead.customer.name}</p>
                       </div>
                       <div>
-                        <span className="text-gray-500">Phone:</span>
+                        <span className="text-gray-500">Phone</span>
                         <p className="font-medium">
                           <a href={`tel:${lead.customer.phone}`} className="text-blue-600 hover:text-blue-700">
                             {lead.customer.phone}
@@ -278,7 +268,7 @@ export default function LeadsPage() {
                         </p>
                       </div>
                       <div>
-                        <span className="text-gray-500">Email:</span>
+                        <span className="text-gray-500">Email</span>
                         <p className="font-medium">
                           <a href={`mailto:${lead.customer.email}`} className="text-blue-600 hover:text-blue-700">
                             {lead.customer.email}
@@ -286,7 +276,7 @@ export default function LeadsPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-4 flex gap-2">
+                    <div className="flex gap-2">
                       <a
                         href={`tel:${lead.customer.phone}`}
                         className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
@@ -299,70 +289,6 @@ export default function LeadsPage() {
                       >
                         💬 Text
                       </a>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Won Leads */}
-        {activeTab === 'won' && (
-          <div className="space-y-4">
-            {won.length === 0 ? (
-              <div className="bg-white rounded-lg shadow p-8 text-center">
-                <p className="text-gray-500">You haven't purchased any leads yet</p>
-                <p className="text-sm text-gray-400 mt-2">Purchase available leads to get started</p>
-              </div>
-            ) : (
-              won.map((lead) => (
-                <div key={lead.id} className="bg-white rounded-lg shadow p-6">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                          {lead.category.toUpperCase()}
-                        </span>
-                        <span className="text-sm text-gray-500">{lead.location}</span>
-                        <span className="text-sm text-green-600 font-medium">✓ Purchased</span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-500">Customer:</span>
-                          <p className="font-medium">{lead.customer.name}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Phone:</span>
-                          <p className="font-medium">
-                            <a href={`tel:${lead.customer.phone}`} className="text-blue-600 hover:text-blue-700">
-                              {lead.customer.phone}
-                            </a>
-                          </p>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Email:</span>
-                          <p className="font-medium">
-                            <a href={`mailto:${lead.customer.email}`} className="text-blue-600 hover:text-blue-700">
-                              {lead.customer.email}
-                            </a>
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-4 flex gap-2">
-                        <a
-                          href={`tel:${lead.customer.phone}`}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
-                        >
-                          📞 Call Now
-                        </a>
-                        <a
-                          href={`sms:${lead.customer.phone}`}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-                        >
-                          💬 Text
-                        </a>
-                      </div>
                     </div>
                   </div>
                 </div>

@@ -58,6 +58,7 @@ export async function GET(
         lead: {
           id: lead.id,
           category: lead.category,
+          propertyType: lead.propertyType,
           description: lead.description,
           location: {
             city: lead.location.city,

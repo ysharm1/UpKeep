@@ -6,7 +6,6 @@ import Link from 'next/link'
 
 export default function DashboardPage() {
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
   const [jobs, setJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showArchived, setShowArchived] = useState(false)
@@ -18,7 +17,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!mounted) return
-    
+
     const token = localStorage.getItem('accessToken')
     if (!token) {
       router.push('/auth/login')
@@ -30,46 +29,33 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async (token: string) => {
     try {
-      // First, validate the token and get user info
       const userResponse = await fetch('/api/auth/me', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       })
 
       if (!userResponse.ok) {
-        throw new Error('Failed to fetch user data')
+        router.push('/auth/login')
+        return
       }
 
       const userData = await userResponse.json()
-      
+
       // Redirect service providers to their dashboard
       if (userData.user.role === 'service_provider') {
         router.push('/provider/dashboard')
         return
       }
 
-      // Fetch jobs for homeowners
       const response = await fetch('/api/jobs', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       })
 
       if (!response.ok) {
-        throw new Error('Failed to fetch data')
+        throw new Error('Failed to fetch jobs')
       }
 
       const data = await response.json()
       setJobs(data.jobRequests || [])
-      
-      // Debug: Show job statuses
-      const jobStatuses = data.jobRequests?.map((j: any) => `${j.status} (hasProvider: ${!!j.serviceProviderId})`).join(', ')
-      console.log('=== HOMEOWNER DASHBOARD JOBS ===')
-      console.log('Total jobs:', data.jobRequests?.length)
-      console.log('Job statuses:', jobStatuses)
-      console.log('Full jobs data:', data.jobRequests)
-      console.log('================================')
     } catch (error) {
       console.error('Dashboard error:', error)
     } finally {
@@ -77,14 +63,34 @@ export default function DashboardPage() {
     }
   }
 
-  const activeJobs = jobs.filter(job => 
-    job.status !== 'completed' && job.status !== 'cancelled' && job.status !== 'resolved_diy'
-  )
-  
-  const archivedJobs = jobs.filter(job => 
-    job.status === 'completed' || job.status === 'cancelled' || job.status === 'resolved_diy'
-  )
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      submitted: 'Submitted',
+      ai_diagnosis: 'AI Diagnosing',
+      resolved_diy: 'Solved with AI',
+      pending_match: 'Waiting for Pros',
+      matched: 'Pros Notified',
+      accepted: 'Pro Found',
+      in_progress: 'In Progress',
+      completed: 'Completed',
+      cancelled: 'Cancelled',
+    }
+    return labels[status] || status
+  }
 
+  const getStatusColor = (status: string) => {
+    if (['resolved_diy', 'completed'].includes(status)) return 'bg-green-100 text-green-800'
+    if (status === 'cancelled') return 'bg-red-100 text-red-800'
+    if (status === 'ai_diagnosis') return 'bg-purple-100 text-purple-800'
+    return 'bg-blue-100 text-blue-800'
+  }
+
+  const activeJobs = jobs.filter(
+    (job) => !['completed', 'cancelled', 'resolved_diy'].includes(job.status)
+  )
+  const archivedJobs = jobs.filter((job) =>
+    ['completed', 'cancelled', 'resolved_diy'].includes(job.status)
+  )
   const displayedJobs = showArchived ? archivedJobs : activeJobs
 
   const handleLogout = () => {
@@ -109,11 +115,9 @@ export default function DashboardPage() {
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center">
-              <Link href="/dashboard" className="text-2xl font-bold text-blue-600">
-                UpKeep
-              </Link>
-            </div>
+            <Link href="/dashboard" className="text-2xl font-bold text-blue-600">
+              UpKeep
+            </Link>
             <div className="flex gap-4 items-center">
               <Link
                 href="/problems/new"
@@ -121,10 +125,7 @@ export default function DashboardPage() {
               >
                 Get Help with a Problem
               </Link>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 text-gray-700 hover:text-gray-900"
-              >
+              <button onClick={handleLogout} className="px-4 py-2 text-gray-700 hover:text-gray-900">
                 Logout
               </button>
             </div>
@@ -146,13 +147,15 @@ export default function DashboardPage() {
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-sm font-medium text-gray-500">Solved with AI</h3>
             <p className="text-3xl font-bold text-gray-900 mt-2">
-              {jobs.filter(j => j.status === 'resolved_diy').length}
+              {jobs.filter((j) => j.status === 'resolved_diy').length}
             </p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Professional Help</h3>
+            <h3 className="text-sm font-medium text-gray-500">Sent to Professionals</h3>
             <p className="text-3xl font-bold text-gray-900 mt-2">
-              {jobs.filter(j => ['pending_match', 'matched', 'accepted', 'in_progress', 'completed'].includes(j.status)).length}
+              {jobs.filter((j) =>
+                ['pending_match', 'matched', 'accepted', 'in_progress', 'completed'].includes(j.status)
+              ).length}
             </p>
           </div>
         </div>
@@ -165,9 +168,7 @@ export default function DashboardPage() {
                 <button
                   onClick={() => setShowArchived(false)}
                   className={`px-4 py-2 text-sm font-medium rounded-lg ${
-                    !showArchived
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    !showArchived ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   Active ({activeJobs.length})
@@ -175,9 +176,7 @@ export default function DashboardPage() {
                 <button
                   onClick={() => setShowArchived(true)}
                   className={`px-4 py-2 text-sm font-medium rounded-lg ${
-                    showArchived
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    showArchived ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   Past ({archivedJobs.length})
@@ -201,57 +200,38 @@ export default function DashboardPage() {
                 )}
               </div>
             ) : (
-              displayedJobs.map(job => (
+              displayedJobs.map((job) => (
                 <div key={job.id} className="px-6 py-4 hover:bg-gray-50">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-gray-900">{job.category}</h3>
-                        {job.status === 'pending_match' && (
-                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded font-medium">
-                            3 Quotes Received
-                          </span>
-                        )}
+                        <h3 className="font-medium text-gray-900 capitalize">
+                          {job.category.replace('_', ' ')}
+                        </h3>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {job.description.substring(0, 100)}...
+                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                        {job.description}
                       </p>
-                      <div className="flex gap-4 mt-2">
+                      <div className="flex gap-3 mt-2 items-center">
                         <span className="text-xs text-gray-500">
                           {new Date(job.createdAt).toLocaleDateString()}
                         </span>
-                        <span
-                          className={`text-xs px-2 py-1 rounded ${
-                            job.status === 'resolved_diy'
-                              ? 'bg-green-100 text-green-800'
-                              : job.status === 'completed'
-                              ? 'bg-green-100 text-green-800'
-                              : job.status === 'cancelled'
-                              ? 'bg-red-100 text-red-800'
-                              : job.status === 'ai_diagnosis'
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}
-                        >
-                          {job.status === 'resolved_diy' ? 'Solved with AI' : 
-                           job.status === 'ai_diagnosis' ? 'AI Diagnosing' :
-                           job.status === 'pending_match' ? 'Review Quotes' :
-                           job.status === 'matched' ? 'Professional Found' :
-                           job.status}
+                        <span className={`text-xs px-2 py-1 rounded ${getStatusColor(job.status)}`}>
+                          {getStatusLabel(job.status)}
                         </span>
+                        {job.viewCount > 0 && (
+                          <span className="text-xs text-gray-500">
+                            {job.viewCount} pro{job.viewCount !== 1 ? 's' : ''} interested
+                          </span>
+                        )}
                       </div>
                     </div>
-                    {(() => {
-                      console.log(`Job ${job.id} status: "${job.status}" (type: ${typeof job.status})`)
-                      return (
-                        <Link
-                          href={`/jobs/${job.id}`}
-                          className="ml-4 text-blue-600 hover:text-blue-700 text-sm font-medium whitespace-nowrap"
-                          >
-                            View Details →
-                          </Link>
-                        )
-                    })()}
+                    <Link
+                      href={`/jobs/${job.id}`}
+                      className="ml-4 text-blue-600 hover:text-blue-700 text-sm font-medium whitespace-nowrap"
+                    >
+                      View Details →
+                    </Link>
                   </div>
                 </div>
               ))

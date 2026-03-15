@@ -1,7 +1,12 @@
-import { UserRole, User } from '@prisma/client'
+import { UserRole, User, HomeownerProfile, ServiceProviderProfile } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { prisma } from '../prisma'
+
+export type UserWithProfiles = User & {
+  homeownerProfile: HomeownerProfile | null
+  serviceProviderProfile: ServiceProviderProfile | null
+}
 
 const SALT_ROUNDS = 12
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key'
@@ -24,6 +29,7 @@ export interface RegisterData {
     lastName?: string
     phoneNumber?: string
     businessName?: string
+    specialties?: string[]
   }
   address?: {
     street: string
@@ -96,7 +102,7 @@ export class AuthService {
             create: {
               businessName: profileData?.businessName || '',
               phoneNumber: profileData?.phoneNumber || '',
-              specialties: [],
+              specialties: (profileData?.specialties as any[]) || [],
               licenseNumber: '',
               verified: false,
             },
@@ -249,7 +255,7 @@ export class AuthService {
    * Validate session token and return user
    * Requirements: 1.4
    */
-  async validateSession(token: string): Promise<User> {
+  async validateSession(token: string): Promise<UserWithProfiles> {
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as {
         userId: string

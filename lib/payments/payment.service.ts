@@ -3,7 +3,7 @@ import Stripe from 'stripe'
 import { prisma } from '../prisma'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2026-01-28.clover',
 })
 
 const PLATFORM_FEE_PERCENTAGE = 0.15 // 15%

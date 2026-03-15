@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { jobService } from '@/lib/jobs/job.service'
 import { authService } from '@/lib/auth/auth.service'
+import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
@@ -22,30 +23,24 @@ export async function GET(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 })
     }
 
-    // Verify user has access to this job
-    console.log('Authorization check:', {
-      userId: user.id,
-      userRole: user.role,
-      homeownerProfileId: user.homeownerProfile?.id,
-      providerProfileId: user.serviceProviderProfile?.id,
-      jobHomeownerId: jobRequest.homeownerId,
-      jobProviderId: jobRequest.serviceProviderId,
-    })
-
+    // Check access: homeowner who owns the job, OR service provider who purchased the lead
     const isHomeowner = jobRequest.homeownerId === user.homeownerProfile?.id
-    const isProvider = jobRequest.serviceProviderId === user.serviceProviderProfile?.id
+
+    let isProvider = false
+    if (user.role === 'service_provider' && user.serviceProviderProfile) {
+      const purchase = await prisma.leadView.findUnique({
+        where: {
+          jobRequestId_providerId: {
+            jobRequestId: params.id,
+            providerId: user.serviceProviderProfile.id,
+          },
+        },
+      })
+      isProvider = !!purchase
+    }
 
     if (!isHomeowner && !isProvider) {
-      console.error('Access denied: User does not own this job')
-      return NextResponse.json({ 
-        error: 'Unauthorized - You do not have access to this job',
-        debug: {
-          isHomeowner,
-          isProvider,
-          hasHomeownerProfile: !!user.homeownerProfile,
-          hasProviderProfile: !!user.serviceProviderProfile,
-        }
-      }, { status: 403 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
     return NextResponse.json({ jobRequest })
