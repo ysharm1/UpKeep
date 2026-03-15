@@ -174,6 +174,10 @@ export class JobService {
       [JobStatus.in_progress]: [JobStatus.completed],
       [JobStatus.completed]: [], // Terminal state
       [JobStatus.cancelled]: [], // Terminal state
+      [JobStatus.diagnostic_scheduled]: [JobStatus.diagnostic_completed],
+      [JobStatus.diagnostic_completed]: [JobStatus.repair_pending_approval],
+      [JobStatus.repair_pending_approval]: [JobStatus.repair_approved],
+      [JobStatus.repair_approved]: [JobStatus.in_progress],
     }
 
     const allowedTransitions = validTransitions[currentStatus] || []
